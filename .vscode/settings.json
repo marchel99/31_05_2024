@@ -2,5 +2,9 @@
     "cmake.toolchainFile": "${workspaceFolder}/cmake/gcc-arm-none-eabi.cmake",
     "cmake.generator": "Ninja",
     "cmake.configureOnOpen": true,
-    "cmake.buildDirectory": "${workspaceFolder}/build"
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "files.associations": {
+        "bme280.h": "c",
+        "stm32l4xx_hal.h": "c"
+    }
 }

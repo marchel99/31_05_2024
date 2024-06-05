@@ -11,7 +11,9 @@
 		"commands" : 
 		[
 			"add_executable",
-			"target_link_libraries"
+			"target_link_libraries",
+			"target_include_directories",
+			"target_sources"
 		],
 		"files" : 
 		[
@@ -25,13 +27,25 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 38,
+				"line" : 37,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 64,
+				"line" : 65,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 54,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 48,
 				"parent" : 0
 			}
 		]
@@ -62,6 +76,10 @@
 			],
 			"includes" : 
 			[
+				{
+					"backtrace" : 3,
+					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-bme280-master"
+				},
 				{
 					"backtrace" : 2,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/cmake/stm32cubemx/../../Core/Inc"
@@ -116,7 +134,10 @@
 				19,
 				20,
 				21,
-				22
+				22,
+				23,
+				24,
+				25
 			]
 		},
 		{
@@ -144,6 +165,10 @@
 			"includes" : 
 			[
 				{
+					"backtrace" : 3,
+					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-bme280-master"
+				},
+				{
 					"backtrace" : 2,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/cmake/stm32cubemx/../../Core/Inc"
 				},
@@ -167,7 +192,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				23
+				26
 			]
 		}
 	],
@@ -222,19 +247,28 @@
 				19,
 				20,
 				21,
-				22
+				22,
+				23,
+				24,
+				25
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				23
+				26
 			]
 		}
 	],
 	"sources" : 
 	[
+		{
+			"backtrace" : 4,
+			"compileGroupIndex" : 0,
+			"path" : "Libraries/stm32-bme280-master/bme280.c",
+			"sourceGroupIndex" : 0
+		},
 		{
 			"backtrace" : 2,
 			"compileGroupIndex" : 0,
@@ -353,6 +387,18 @@
 			"backtrace" : 2,
 			"compileGroupIndex" : 0,
 			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart_ex.c",
 			"sourceGroupIndex" : 0
 		},
 		{
