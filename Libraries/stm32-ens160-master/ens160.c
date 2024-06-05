@@ -1,3 +1,13 @@
+/*!
+ENS160.h
+
+ * @license  The MIT License (MIT)
+ * marchel99
+ */
+
+
+
+
 #ifndef DFRobot_ENS160_H
 #define DFRobot_ENS160_H
 
@@ -53,7 +63,7 @@ uint16_t DFRobot_ENS160_getECO2(DFRobot_ENS160* ens160);
 uint8_t DFRobot_ENS160_getMISR(DFRobot_ENS160* ens160);
 uint8_t DFRobot_ENS160_calcMISR(DFRobot_ENS160* ens160, uint8_t data);
 
-int DFRobot_ENS160_I2C_begin(DFRobot_ENS160_I2C* ens160, TwoWire *pWire, uint8_t i2cAddr);
-int DFRobot_ENS160_SPI_begin(DFRobot_ENS160_SPI* ens160, SPIClass *pSpi, uint8_t csPin);
+//int DFRobot_ENS160_I2C_begin(DFRobot_ENS160_I2C* ens160, TwoWire *pWire, uint8_t i2cAddr);
+//int DFRobot_ENS160_SPI_begin(DFRobot_ENS160_SPI* ens160, SPIClass *pSpi, uint8_t csPin);
 
 #endif
