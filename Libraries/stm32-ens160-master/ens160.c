@@ -1,5 +1,5 @@
 /*!
-ENS160.h
+ENS160.c
 
  * @license  The MIT License (MIT)
  * marchel99
