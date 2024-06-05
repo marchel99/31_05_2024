@@ -4,14 +4,16 @@ ENS160.h
  * @license  The MIT License (MIT)
  * marchel99
  */
-#ifndef __DFRobot_ENS160_H__
-#define __DFRobot_ENS160_H__
+#ifndef __ENS160_H__
+#define __ENS160_H__
 
 //#include <Arduino.h>
 //#include <Wire.h>
 //#include <SPI.h>
-
 // #define ENABLE_DBG   //!< Open this macro and you can see the details of the program
+
+
+
 #ifdef ENABLE_DBG
   #define DBG(...) {Serial.print("[");Serial.print(__FUNCTION__); Serial.print("(): "); Serial.print(__LINE__); Serial.print(" ] "); Serial.println(__VA_ARGS__);}
 #else

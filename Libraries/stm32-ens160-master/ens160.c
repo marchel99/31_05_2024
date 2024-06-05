@@ -8,15 +8,18 @@ ENS160.c
 
 
 
-#ifndef DFRobot_ENS160_H
-#define DFRobot_ENS160_H
+#ifndef ENS160_H
+#define ENS160_H
 
 #include <stdint.h>
 #include <stddef.h>
+#include "stm32l4xx_hal.h"
+#include "ens160.h"
 
+
+//Rejestry
 #define ENS160_PART_ID_REG      0xD0
 #define ENS160_PART_ID          0x38
-
 #define ENS160_OPMODE_REG       0x74
 #define ENS160_CONFIG_REG       0x76
 #define ENS160_TEMP_IN_REG      0xE2
@@ -35,10 +38,7 @@ ENS160.c
 #define ERR_IC_VERSION    -2
 #define NO_ERR            0
 
-typedef struct {
-    uint8_t misr;
-    uint8_t ENS160Status;
-} DFRobot_ENS160;
+
 
 typedef struct {
     DFRobot_ENS160 ens160;
