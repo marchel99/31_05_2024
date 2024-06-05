@@ -1,6 +1,7 @@
 #include "main.h"
 #include "stm32l4xx_hal.h"
 #include "bme280.h"
+#include "ens160.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -16,7 +17,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
-
+//stm
 // Funkcje do obsługi opóźnień i komunikacji przez I2C
 void user_delay_ms(uint32_t period);
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
@@ -107,11 +108,11 @@ void print_sensor_data(struct bme280_t *bme280)
     float imp_press = ((float)(v_comp_press_u32[1]) / 100);         // konwersja na hPa
     float imp_humi = ((float)(v_comp_humidity_u32[1]) / 1024);      // wilgotność względna
     float dewpt = ((float)v_comp_temp_s32[1] / 100) - ((100 - imp_humi) / 5.); // obliczenie punktu rosy w Fahrenheit
-                                             // konwersja na Fahrenheit
+                                            
 
-    // Wyświetlanie danych w jednostkach imperialnych
+    // Wyświetlanie danych 
     char display_buffer[100];
-    int lengthd = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Wilg: %.2f%% rH, Punkt Rosy: %.2f °C\r\n",
+    int lengthd = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Ciśn: %.2f hPa, Wilg: %.2f%% rH, Punkt Rosy: %.2f °C\r\n",
                            imp_temp,
                            imp_press,
                            imp_humi,
