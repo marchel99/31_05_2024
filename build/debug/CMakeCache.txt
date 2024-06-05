@@ -236,6 +236,15 @@ CMAKE_TOOLCHAIN_FILE:UNINITIALIZED=D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/User
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
 //Value Computed by CMake
+Project_BINARY_DIR:STATIC=D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/build/debug
+
+//Value Computed by CMake
+Project_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+Project_SOURCE_DIR:STATIC=D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024
+
+//Value Computed by CMake
 stm32cubemx_BINARY_DIR:STATIC=D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/build/debug/cmake/stm32cubemx
 
 //Value Computed by CMake

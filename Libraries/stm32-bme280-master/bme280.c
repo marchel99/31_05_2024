@@ -1084,7 +1084,6 @@ u8 *v_value_u8)
 
 
 
-
 /*!
  *	@brief This API is used to set
  *	the humidity oversampling setting in the register 0xF2

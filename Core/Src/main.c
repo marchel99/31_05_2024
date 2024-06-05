@@ -17,6 +17,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 
+// Funkcje do obsługi opóźnień i komunikacji przez I2C
 void user_delay_ms(uint32_t period);
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
@@ -25,11 +26,13 @@ void print_sensor_data(struct bme280_t *bme280);
 #define BME280_OK 0
 #define BME280_I2C_ADDR 0x76
 
+// Opóźnienie w milisekundach
 void user_delay_ms(uint32_t period)
 {
   HAL_Delay(period);
 }
 
+// Funkcja do odczytu danych przez I2C
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
 {
   HAL_StatusTypeDef status;
@@ -52,6 +55,7 @@ int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_
   return 0;
 }
 
+// Funkcja do zapisu danych przez I2C
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
 {
   HAL_StatusTypeDef status;
@@ -74,6 +78,8 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
   return 0;
 }
 
+
+
 void print_sensor_data(struct bme280_t *bme280)
 {
   // Włącz tryb normalny (jeśli sensor jest w trybie uśpienia)
@@ -83,26 +89,57 @@ void print_sensor_data(struct bme280_t *bme280)
 
   if (bme280_read_pressure_temperature_humidity((uint32_t *)&pressure_raw, &temp_raw, (uint32_t *)&humidity_raw) == BME280_OK)
   {
-    double temp_c = bme280_compensate_temperature_double(temp_raw);
-    double pressure_hpa = bme280_compensate_pressure_double(pressure_raw) / 100.0;
-    double humidity_percent = bme280_compensate_humidity_double(humidity_raw);
-
-    char buffer[100];
-    int length = snprintf(buffer, sizeof(buffer), "Temp: %.2f°C, Pressure: %.2f hPa, Humidity: %.2f%%\r\n", temp_c, pressure_hpa, humidity_percent);
-    HAL_UART_Transmit(&huart2, (uint8_t *)buffer, length, HAL_MAX_DELAY);
-
-    // Debugowanie - wyświetlanie surowych wartości
+    // Wyświetlanie surowych wartości
     char raw_buffer[100];
-    length = snprintf(raw_buffer, sizeof(raw_buffer), "Raw Temp: %d, Raw Pressure: %d, Raw Humidity: %d\r\n", temp_raw, pressure_raw, humidity_raw);
+    int length = snprintf(raw_buffer, sizeof(raw_buffer), "Raw Temp: %d, Raw Pressure: %d, Raw Humidity: %d\r\n", temp_raw, pressure_raw, humidity_raw);
     HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
+
+    // Przeliczenie temperatury i ciśnienia na jednostki imperialne (Fahrenheit i inHg)
+    uint32_t v_comp_temp_s32[1];
+    uint32_t v_comp_press_u32[1];
+    uint32_t v_comp_humidity_u32[1];
+    int com_rslt = 0;
+
+    com_rslt += bme280_read_pressure_temperature_humidity(
+        &v_comp_press_u32[1], &v_comp_temp_s32[1], &v_comp_humidity_u32[1]);
+
+    float imp_temp = ((float)(v_comp_temp_s32[1]) / 100);           // konwersja na C
+    float imp_press = ((float)(v_comp_press_u32[1]) / 100);         // konwersja na hPa
+    float imp_humi = ((float)(v_comp_humidity_u32[1]) / 1024);      // wilgotność względna
+    float dewpt = ((float)v_comp_temp_s32[1] / 100) - ((100 - imp_humi) / 5.); // obliczenie punktu rosy w Fahrenheit
+                                             // konwersja na Fahrenheit
+
+    // Wyświetlanie danych w jednostkach imperialnych
+    char display_buffer[100];
+    int lengthd = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Wilg: %.2f%% rH, Punkt Rosy: %.2f °C\r\n",
+                           imp_temp,
+                           imp_press,
+                           imp_humi,
+                           dewpt);
+
+    HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, lengthd, HAL_MAX_DELAY);
   }
   else
   {
     const char error_message[] = "Sensor read error!\r\n";
     HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
   }
+
+  // Linia oddzielająca pomiary
+  const char separator[] = "________________________________________________________________________\r\n";
+  HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
 }
 
+
+
+
+
+
+
+
+
+
+// Funkcja główna
 int main(void)
 {
   HAL_Init();
@@ -128,6 +165,7 @@ int main(void)
     HAL_UART_Transmit(&huart2, (uint8_t *)init_success, strlen(init_success), HAL_MAX_DELAY);
   }
 
+  // Konfiguracja sensora
   if (bme280_set_oversamp_humidity(BME280_OVERSAMP_1X) != BME280_OK)
   {
     const char error_message[] = "Failed to set humidity oversampling!\r\n";
@@ -163,17 +201,18 @@ int main(void)
     Error_Handler();
   }
 
-  const char helloMessage[] = "1Hello world!\r\n";
+ // const char helloMessage[] = "Hello world!\r\n";
 
   while (1)
   {
     print_sensor_data(p_bme280);
-    HAL_UART_Transmit(&huart2, (uint8_t *)helloMessage, strlen(helloMessage), HAL_MAX_DELAY);
+    //HAL_UART_Transmit(&huart2, (uint8_t *)helloMessage, strlen(helloMessage), HAL_MAX_DELAY);
     HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
     HAL_Delay(2500);
   }
 }
 
+// Konfiguracja zegara systemowego
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -206,6 +245,7 @@ void SystemClock_Config(void)
   }
 }
 
+// Konfiguracja interfejsu I2C
 static void MX_I2C1_Init(void)
 {
   hi2c1.Instance = I2C1;
@@ -233,6 +273,7 @@ static void MX_I2C1_Init(void)
   }
 }
 
+// Konfiguracja interfejsu UART
 static void MX_USART2_UART_Init(void)
 {
   huart2.Instance = USART2;
@@ -251,6 +292,7 @@ static void MX_USART2_UART_Init(void)
   }
 }
 
+// Inicjalizacja pinów GPIO
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -267,6 +309,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 }
 
+// Obsługa błędów
 void Error_Handler(void)
 {
   __disable_irq();
