@@ -106,7 +106,7 @@ void print_sensor_data(struct bme280_t *bme280)
         float dewpt = ((float)v_comp_temp_s32[1] / 100) - ((100 - imp_humi) / 5.);
 
         char display_buffer[120];
-        int lengthd = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Ciśn: %.2f hPa, Wilg: %.2f%% rH, Punkt Rosy: %.2f °C\r\n",
+        int lengthd = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
                                imp_temp,
                                imp_press,
                                imp_humi,
@@ -126,27 +126,13 @@ void print_sensor_data(struct bme280_t *bme280)
 
 void read_and_print_ens160_data(void) {
     uint8_t status = DFRobot_ENS160_GetStatus(&ens160);
-    char status_buffer[50];
-    snprintf(status_buffer, sizeof(status_buffer), "Sensor operating status: %d\r\n", status);
-    HAL_UART_Transmit(&huart2, (uint8_t *)status_buffer, strlen(status_buffer), HAL_MAX_DELAY);
-
     uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
-    char aqi_buffer[50];
-    snprintf(aqi_buffer, sizeof(aqi_buffer), "Air quality index: %d\r\n", aqi);
-    HAL_UART_Transmit(&huart2, (uint8_t *)aqi_buffer, strlen(aqi_buffer), HAL_MAX_DELAY);
-
     uint16_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
-    char tvoc_buffer[100];
-    snprintf(tvoc_buffer, sizeof(tvoc_buffer), "Concentration of total volatile organic compounds: %d ppb\r\n", tvoc);
-    HAL_UART_Transmit(&huart2, (uint8_t *)tvoc_buffer, strlen(tvoc_buffer), HAL_MAX_DELAY);
-
     uint16_t eco2 = DFRobot_ENS160_GetECO2(&ens160);
-    char eco2_buffer[100];
-    snprintf(eco2_buffer, sizeof(eco2_buffer), "Carbon dioxide equivalent concentration: %d ppm\r\n", eco2);
-    HAL_UART_Transmit(&huart2, (uint8_t *)eco2_buffer, strlen(eco2_buffer), HAL_MAX_DELAY);
 
-    const char separator[] = "________________________________________________________________________\r\n";
-    HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+    char ens160_data_buffer[200];
+    snprintf(ens160_data_buffer, sizeof(ens160_data_buffer), "Status: %d, AQI: %d, TVOC: %d ppb, eCO2: %d ppm\r\n", status, aqi, tvoc, eco2);
+    HAL_UART_Transmit(&huart2, (uint8_t *)ens160_data_buffer, strlen(ens160_data_buffer), HAL_MAX_DELAY);
 }
 
 void init_ens160(void) {
@@ -192,7 +178,7 @@ int main(void)
     MX_I2C1_Init();
     MX_USART2_UART_Init();
 
-    I2C_Scan();  // Skanowanie magistrali I2C przed inicjalizacją czujników
+    I2C_Scan();
 
     p_bme280->bus_write = user_i2c_write;
     p_bme280->bus_read = user_i2c_read;
