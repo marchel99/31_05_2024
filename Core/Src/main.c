@@ -84,24 +84,26 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
 
 void print_sensor_data(struct bme280_t *bme280)
 {
-  bme280_set_power_mode(BME280_FORCED_MODE);
-
   int32_t temp_raw, pressure_raw, humidity_raw;
 
-  if (bme280_read_pressure_temperature_humidity((uint32_t *)&pressure_raw, &temp_raw, (uint32_t *)&humidity_raw) == BME280_OK)
+  // Zmiana trybu pracy na FORCED_MODE (jednorazowy pomiar)
+  bme280_set_power_mode(BME280_FORCED_MODE);
+  user_delay_ms(100);  // Dodanie opóźnienia po zmianie trybu pracy
+
+  if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
   {
-    int32_t v_comp_temp_s32[1];
-    int32_t v_comp_press_u32[1];
-    int32_t v_comp_humidity_u32[1];
-    int com_rslt = 0;
+    int32_t v_comp_temp_s32;
+    uint32_t v_comp_press_u32;
+    uint32_t v_comp_humidity_u32;
 
-    com_rslt += bme280_read_pressure_temperature_humidity(
-        (uint32_t *)&v_comp_press_u32[1], (uint32_t *)&v_comp_temp_s32[1], (uint32_t *)&v_comp_humidity_u32[1]);
+    v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+    v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+    v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
 
-    float imp_temp = ((float)(v_comp_temp_s32[1]) / 100);
-    float imp_press = ((float)(v_comp_press_u32[1]) / 100);
-    float imp_humi = ((float)(v_comp_humidity_u32[1]) / 1024);
-    float dewpt = ((float)v_comp_temp_s32[1] / 100) - ((100 - imp_humi) / 5.);
+    float imp_temp = ((float)v_comp_temp_s32 / 100);
+    float imp_press = ((float)v_comp_press_u32 / 100);
+    float imp_humi = ((float)v_comp_humidity_u32 / 1024);
+    float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
 
     char raw_buffer[200];
     const char separator[] = "________________________________________________________________________\r\n";
@@ -110,7 +112,6 @@ void print_sensor_data(struct bme280_t *bme280)
                           DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
     HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
 
-    
     HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
 
     char display_buffer[200];
@@ -124,6 +125,13 @@ void print_sensor_data(struct bme280_t *bme280)
     HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
   }
 }
+
+
+
+
+
+
+
 
 void read_and_print_ens160_data(void)
 {
@@ -179,7 +187,7 @@ void I2C_Scan()
   }
 }
 
-uint32_t read_adc_value(ADC_HandleTypeDef* hadc, uint32_t channel)
+uint32_t read_adc_value(ADC_HandleTypeDef *hadc, uint32_t channel)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
   sConfig.Channel = channel;
@@ -233,6 +241,13 @@ int main(void)
     HAL_UART_Transmit(&huart2, (uint8_t *)init_success, strlen(init_success), HAL_MAX_DELAY);
   }
 
+  // Konfiguracja czujnika BME280
+  bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
+  bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
+  bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
+  bme280_set_filter(BME280_FILTER_COEFF_16);
+  bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
+
   init_ens160();
 
   while (1)
@@ -253,6 +268,18 @@ int main(void)
     HAL_Delay(2500);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 void SystemClock_Config(void)
 {
@@ -352,26 +379,26 @@ static void MX_ADC1_Init(void)
   ADC_ChannelConfTypeDef sConfig = {0};
 
   hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;  // Correct HAL macro
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;  // Correct HAL macro
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;  // Correct HAL macro
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1; // Correct HAL macro
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;       // Correct HAL macro
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;       // Correct HAL macro
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;  // Correct HAL macro
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START; // Correct HAL macro
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;  // Correct HAL macro
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED; // Correct HAL macro
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
   }
 
-  sConfig.Channel = ADC_CHANNEL_0;  // Correct HAL macro
+  sConfig.Channel = ADC_CHANNEL_0; // Correct HAL macro
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5; // Correct HAL macro
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
