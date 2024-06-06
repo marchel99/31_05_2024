@@ -8,6 +8,7 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart2;
+ADC_HandleTypeDef hadc1;
 
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
@@ -19,6 +20,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_ADC1_Init(void);
 
 void user_delay_ms(uint32_t period);
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
@@ -115,10 +117,6 @@ void print_sensor_data(struct bme280_t *bme280)
     length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
                       imp_temp, imp_press, imp_humi, dewpt);
     HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
-    
-    
-
-
   }
   else
   {
@@ -181,6 +179,32 @@ void I2C_Scan()
   }
 }
 
+uint32_t read_adc_value(ADC_HandleTypeDef* hadc, uint32_t channel)
+{
+  ADC_ChannelConfTypeDef sConfig = {0};
+  sConfig.Channel = channel;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5; // Correct HAL macro
+  if (HAL_ADC_ConfigChannel(hadc, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_ADC_Start(hadc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  if (HAL_ADC_PollForConversion(hadc, HAL_MAX_DELAY) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  uint32_t value = HAL_ADC_GetValue(hadc);
+  HAL_ADC_Stop(hadc);
+  return value;
+}
+
 int main(void)
 {
   HAL_Init();
@@ -188,6 +212,7 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_USART2_UART_Init();
+  MX_ADC1_Init();
 
   I2C_Scan();
 
@@ -214,6 +239,15 @@ int main(void)
   {
     print_sensor_data(p_bme280);
     read_and_print_ens160_data();
+
+    uint32_t co_value = read_adc_value(&hadc1, ADC_CHANNEL_0);  // Odczyt z PA0
+    uint32_t hcho_value = read_adc_value(&hadc1, ADC_CHANNEL_1);  // Odczyt z PA1
+    float co_voltage = (co_value / 4095.0f) * 3.3f;
+    float hcho_voltage = (hcho_value / 4095.0f) * 3.3f;
+
+    char analog_buffer[200];
+    snprintf(analog_buffer, sizeof(analog_buffer), "CO: %lu (%.2f V), HCHO: %lu (%.2f V)\r\n", co_value, co_voltage, hcho_value, hcho_voltage);
+    HAL_UART_Transmit(&huart2, (uint8_t *)analog_buffer, strlen(analog_buffer), HAL_MAX_DELAY);
 
     HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
     HAL_Delay(2500);
@@ -311,6 +345,39 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+}
+
+static void MX_ADC1_Init(void)
+{
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;  // Correct HAL macro
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;  // Correct HAL macro
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;  // Correct HAL macro
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;  // Correct HAL macro
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;  // Correct HAL macro
+  hadc1.Init.OversamplingMode = DISABLE;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sConfig.Channel = ADC_CHANNEL_0;  // Correct HAL macro
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5; // Correct HAL macro
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 void Error_Handler(void)
