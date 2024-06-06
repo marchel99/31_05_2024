@@ -1,69 +1,113 @@
-/*!
-ENS160.c
+#include "ENS160.h"
+#include <string.h>
 
- * @license  The MIT License (MIT)
- * marchel99
- */
+void DFRobot_ENS160_I2C_Init(DFRobot_ENS160_I2C *instance, I2C_HandleTypeDef *hi2c, uint8_t i2cAddr)
+{
+    instance->hi2c = hi2c;
+    instance->i2cAddr = (i2cAddr != 0) ? i2cAddr : 0x53; // Ustaw domyślny adres, jeśli nie podano
+    instance->misr = 0;                                  // Mirror of DATA_MISR (0 is hardware default)
+}
 
+int DFRobot_ENS160_I2C_Begin(DFRobot_ENS160_I2C *instance)
+{
+    uint8_t idBuf[2];
+    if (HAL_I2C_Mem_Read(instance->hi2c, instance->i2cAddr, ENS160_PART_ID_REG, I2C_MEMADD_SIZE_8BIT, idBuf, sizeof(idBuf), HAL_MAX_DELAY) != HAL_OK)
+    {
+        return ERR_DATA_BUS;
+    }
+    if (ENS160_PART_ID != ENS160_CONCAT_BYTES(idBuf[1], idBuf[0]))
+    {
+        return ERR_IC_VERSION;
+    }
+    DFRobot_ENS160_SetPWRMode(instance, ENS160_STANDARD_MODE);
+    DFRobot_ENS160_SetINTMode(instance, 0x00);
+    return NO_ERR;
+}
 
+void DFRobot_ENS160_I2C_WriteReg(DFRobot_ENS160_I2C *instance, uint8_t reg, const void *pBuf, size_t size)
+{
+    HAL_I2C_Mem_Write(instance->hi2c, instance->i2cAddr, reg, I2C_MEMADD_SIZE_8BIT, (uint8_t *)pBuf, size, HAL_MAX_DELAY);
+}
 
+size_t DFRobot_ENS160_I2C_ReadReg(DFRobot_ENS160_I2C *instance, uint8_t reg, void *pBuf, size_t size)
+{
+    if (HAL_I2C_Mem_Read(instance->hi2c, instance->i2cAddr, reg, I2C_MEMADD_SIZE_8BIT, (uint8_t *)pBuf, size, HAL_MAX_DELAY) == HAL_OK)
+    {
+        return size;
+    }
+    return 0;
+}
 
-#ifndef ENS160_H
-#define ENS160_H
+void DFRobot_ENS160_SetPWRMode(DFRobot_ENS160_I2C *instance, uint8_t mode)
+{
+    DFRobot_ENS160_I2C_WriteReg(instance, ENS160_OPMODE_REG, &mode, sizeof(mode));
+    HAL_Delay(20);
+}
 
-#include <stdint.h>
-#include <stddef.h>
-#include "stm32l4xx_hal.h"
-#include "ens160.h"
+void DFRobot_ENS160_SetINTMode(DFRobot_ENS160_I2C *instance, uint8_t mode)
+{
+    mode |= (0x04 | 0x01); // eINTDataDrdyEN | eIntGprDrdyDIS
+    DFRobot_ENS160_I2C_WriteReg(instance, ENS160_CONFIG_REG, &mode, sizeof(mode));
+    HAL_Delay(20);
+}
 
+void DFRobot_ENS160_SetTempAndHum(DFRobot_ENS160_I2C *instance, float ambientTemp, float relativeHumidity)
+{
+    uint16_t temp = (ambientTemp + 273.15) * 64;
+    uint16_t rh = relativeHumidity * 512;
+    uint8_t buf[4];
 
-//Rejestry
-#define ENS160_PART_ID_REG      0xD0
-#define ENS160_PART_ID          0x38
-#define ENS160_OPMODE_REG       0x74
-#define ENS160_CONFIG_REG       0x76
-#define ENS160_TEMP_IN_REG      0xE2
-#define ENS160_DATA_STATUS_REG  0x04
-#define ENS160_DATA_AQI_REG     0x0C
-#define ENS160_DATA_TVOC_REG    0x10
-#define ENS160_DATA_ECO2_REG    0x12
-#define ENS160_DATA_MISR_REG    0x1E
+    buf[0] = temp & 0xFF;
+    buf[1] = (temp & 0xFF00) >> 8;
+    buf[2] = rh & 0xFF;
+    buf[3] = (rh & 0xFF00) >> 8;
+    DFRobot_ENS160_I2C_WriteReg(instance, ENS160_TEMP_IN_REG, buf, sizeof(buf));
+}
 
-#define eINTDataDrdyEN          0x04
-#define eIntGprDrdyDIS          0x01
+uint8_t DFRobot_ENS160_GetStatus(DFRobot_ENS160_I2C *instance)
+{
+    DFRobot_ENS160_I2C_ReadReg(instance, ENS160_DATA_STATUS_REG, &instance->ENS160Status, sizeof(instance->ENS160Status));
+    return instance->ENS160Status;
+}
 
-#define POLY 0x31
+uint8_t DFRobot_ENS160_GetAQI(DFRobot_ENS160_I2C *instance)
+{
+    uint8_t data = 0;
+    DFRobot_ENS160_I2C_ReadReg(instance, ENS160_DATA_AQI_REG, &data, sizeof(data));
+    return data;
+}
 
-#define ERR_DATA_BUS      -1
-#define ERR_IC_VERSION    -2
-#define NO_ERR            0
+uint16_t DFRobot_ENS160_GetTVOC(DFRobot_ENS160_I2C *instance)
+{
+    uint8_t buf[2];
+    DFRobot_ENS160_I2C_ReadReg(instance, ENS160_DATA_TVOC_REG, buf, sizeof(buf));
+    return ENS160_CONCAT_BYTES(buf[1], buf[0]);
+}
 
+uint16_t DFRobot_ENS160_GetECO2(DFRobot_ENS160_I2C *instance)
+{
+    uint8_t buf[2];
+    DFRobot_ENS160_I2C_ReadReg(instance, ENS160_DATA_ECO2_REG, buf, sizeof(buf));
+    return ENS160_CONCAT_BYTES(buf[1], buf[0]);
+}
 
+uint8_t DFRobot_ENS160_GetMISR(DFRobot_ENS160_I2C *instance)
+{
+    uint8_t crc = 0;
+    DFRobot_ENS160_I2C_ReadReg(instance, ENS160_DATA_MISR_REG, &crc, sizeof(crc));
+    return crc;
+}
 
-typedef struct {
-    DFRobot_ENS160 ens160;
-    void (*writeReg)(uint8_t reg, const void* pBuf, size_t size);
-    size_t (*readReg)(uint8_t reg, void* pBuf, size_t size);
-} DFRobot_ENS160_I2C;
-
-typedef struct {
-    DFRobot_ENS160 ens160;
-    void (*writeReg)(uint8_t reg, const void* pBuf, size_t size);
-    size_t (*readReg)(uint8_t reg, void* pBuf, size_t size);
-} DFRobot_ENS160_SPI;
-
-int DFRobot_ENS160_begin(DFRobot_ENS160* ens160);
-void DFRobot_ENS160_setPWRMode(DFRobot_ENS160* ens160, uint8_t mode);
-void DFRobot_ENS160_setINTMode(DFRobot_ENS160* ens160, uint8_t mode);
-void DFRobot_ENS160_setTempAndHum(DFRobot_ENS160* ens160, float ambientTemp, float relativeHumidity);
-uint8_t DFRobot_ENS160_getENS160Status(DFRobot_ENS160* ens160);
-uint8_t DFRobot_ENS160_getAQI(DFRobot_ENS160* ens160);
-uint16_t DFRobot_ENS160_getTVOC(DFRobot_ENS160* ens160);
-uint16_t DFRobot_ENS160_getECO2(DFRobot_ENS160* ens160);
-uint8_t DFRobot_ENS160_getMISR(DFRobot_ENS160* ens160);
-uint8_t DFRobot_ENS160_calcMISR(DFRobot_ENS160* ens160, uint8_t data);
-
-//int DFRobot_ENS160_I2C_begin(DFRobot_ENS160_I2C* ens160, TwoWire *pWire, uint8_t i2cAddr);
-//int DFRobot_ENS160_SPI_begin(DFRobot_ENS160_SPI* ens160, SPIClass *pSpi, uint8_t csPin);
-
-#endif
+uint8_t DFRobot_ENS160_CalcMISR(DFRobot_ENS160_I2C *instance, uint8_t data)
+{
+    uint8_t misr_xor = ((instance->misr << 1) ^ data) & 0xFF;
+    if ((instance->misr & 0x80) == 0)
+    {
+        instance->misr = misr_xor;
+    }
+    else
+    {
+        instance->misr = misr_xor ^ POLY;
+    }
+    return instance->misr;
+}
