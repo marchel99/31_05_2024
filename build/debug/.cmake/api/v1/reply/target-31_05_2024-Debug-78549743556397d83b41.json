@@ -33,13 +33,13 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 60,
+				"line" : 62,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 48,
+				"line" : 49,
 				"parent" : 0
 			},
 			{
@@ -83,6 +83,10 @@
 				{
 					"backtrace" : 3,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-ens160-master"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-sen05xx-master"
 				},
 				{
 					"backtrace" : 2,
@@ -144,7 +148,8 @@
 				25,
 				26,
 				27,
-				28
+				28,
+				29
 			]
 		},
 		{
@@ -180,6 +185,10 @@
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-ens160-master"
 				},
 				{
+					"backtrace" : 3,
+					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-sen05xx-master"
+				},
+				{
 					"backtrace" : 2,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/cmake/stm32cubemx/../../Core/Inc"
 				},
@@ -203,7 +212,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				29
+				30
 			]
 		}
 	],
@@ -264,14 +273,15 @@
 				25,
 				26,
 				27,
-				28
+				28,
+				29
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				29
+				30
 			]
 		}
 	],
@@ -287,6 +297,12 @@
 			"backtrace" : 4,
 			"compileGroupIndex" : 0,
 			"path" : "Libraries/stm32-ens160-master/ens160.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 4,
+			"compileGroupIndex" : 0,
+			"path" : "Libraries/stm32-SEN05XX-master/sen05xx.c",
 			"sourceGroupIndex" : 0
 		},
 		{

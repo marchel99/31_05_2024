@@ -7,6 +7,7 @@
         "bme280.h": "c",
         "stm32l4xx_hal.h": "c",
         "string.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "type_traits": "c"
     }
 }
