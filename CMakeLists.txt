@@ -43,6 +43,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-bme280-master/bme280.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-ens160-master/ens160.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-sen05xx-master/sen05xx.c
+    ${CMAKE_SOURCE_DIR}/Libraries/stm32-max17048-master/max.c
+    ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/epd4in2b.c
 )
 
 # Add include paths
@@ -51,6 +53,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-bme280-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-ens160-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-sen05xx-master
+    ${CMAKE_SOURCE_DIR}/Libraries/stm32-max17048-master
+    ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master
+  
 )
 
 # Add project symbols (macros)
