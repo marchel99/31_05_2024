@@ -34,9 +34,22 @@ void Epd_SendData(Epd* epd, unsigned char data);
 void Epd_ReadBusy(Epd* epd);
 void Epd_Reset(Epd* epd);
 void Epd_Display_Window_Black(Epd* epd, const UBYTE *image, UBYTE count);
+void Epd_Display_Window_Red_new(Epd* epd, const UBYTE *image, UBYTE count);
+void Epd_Display_Window_Red_old(Epd* epd, const UBYTE *image, UBYTE count);
 void Epd_Display_Window_Red(Epd* epd, const UBYTE *image, UBYTE count);
+void Epd_Display_old(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
+void Epd_Display_new(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
 void Epd_Display(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
 void Epd_Clear(Epd* epd);
 void Epd_Sleep(Epd* epd);
+
+void DigitalWrite(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState state);
+GPIO_PinState DigitalRead(GPIO_TypeDef* port, uint16_t pin);
+void SpiTransfer(uint8_t data);
+void DelayMs(uint32_t ms);
+void EpdIf_IfInit(void);
+
+
+
 
 #endif /* EPD4IN2B_H */
