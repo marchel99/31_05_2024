@@ -34,8 +34,8 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-#define COLORED 0
-#define UNCOLORED 1
+#define COLORED 1
+#define UNCOLORED 0
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
@@ -134,12 +134,15 @@ int main(void)
 
   unsigned char image[1600];
   Paint paint;
-  Paint_Init(&paint, image, 128, 100); // width should be the multiple of 8
+  Paint_Init(&paint, image, 256, 200); // width should be the multiple of 8
   Paint_SetWidth(&paint, 128);
   Paint_SetHeight(&paint, 100);
 
   Paint_Clear(&paint, UNCOLORED);
   Paint_DrawStringAt(&paint, 10, 20, "it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 35, "it really works?!", &Font16, COLORED);
+
+
   Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
   Paint_Clear(&paint, UNCOLORED);
@@ -150,10 +153,10 @@ int main(void)
     Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
     Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
    */
-  Paint_Clear(&paint, UNCOLORED);
+  //Paint_Clear(&paint, UNCOLORED);
 
-  Paint_DrawCircle(&paint, 100, 32, 50, COLORED);
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
+  //Paint_DrawCircle(&paint, 100, 32, 50, COLORED);
+  //Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
 
   // Paint_Clear(&paint, UNCOLORED);
   // Paint_DrawStringAt(&paint, 0, 20, "Hello world", &Font16, COLORED);
