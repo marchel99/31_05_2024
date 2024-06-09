@@ -36,11 +36,6 @@
 /* Private define ------------------------------------------------------------*/
 #define COLORED     0
 #define UNCOLORED   1
-
-
-// Deklaracja i inicjalizacja buforów obrazów
-unsigned char blackimage[EPD_WIDTH * EPD_HEIGHT / 8];
-unsigned char ryimage[EPD_WIDTH * EPD_HEIGHT / 8];
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
@@ -188,7 +183,7 @@ else{
 
 
 
-   Epd_DisplayFrame(&epd, blackimage, ryimage);
+  Epd_DisplayFrame(&epd);
 
   HAL_Delay(1000);
   /* This displays an image */

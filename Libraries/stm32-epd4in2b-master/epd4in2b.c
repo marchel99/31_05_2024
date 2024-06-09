@@ -189,8 +189,17 @@ void Epd_Display(Epd* epd, const UBYTE* blackimage, const UBYTE* ryimage) {
     }
 }
 
-void Epd_DisplayFrame(Epd* epd, const unsigned char* frame_buffer_black, const unsigned char* frame_buffer_red) {
-    Epd_Display(epd, frame_buffer_black, frame_buffer_red);
+void Epd_DisplayFrame(Epd* epd) {
+    if (epd->flag == 0) {
+        Epd_SendCommand(epd, 0x22);
+        Epd_SendData(epd, 0xF7);
+        Epd_SendCommand(epd, 0x20);
+        Epd_ReadBusy(epd);
+    } else {
+        Epd_SendCommand(epd, 0x12);
+        DelayMs(100);
+        Epd_ReadBusy(epd);
+    }
 }
 
 

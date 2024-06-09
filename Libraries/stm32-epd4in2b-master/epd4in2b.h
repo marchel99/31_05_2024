@@ -26,13 +26,13 @@ typedef struct {
 } Epd;
 
 int Epd_Init(Epd* epd);
+void Epd_DisplayFrame(Epd* epd);
 int Epd_Init_new(Epd* epd);
 int Epd_Init_old(Epd* epd);
 void Epd_SendCommand(Epd* epd, unsigned char command);
 void Epd_SendData(Epd* epd, unsigned char data);
 void Epd_ReadBusy(Epd* epd);
 void Epd_Reset(Epd* epd);
-void Epd_DisplayFrame(Epd* epd, const unsigned char* frame_buffer_black, const unsigned char* frame_buffer_red);
 void Epd_Display_Window_Black(Epd* epd, const UBYTE *image, UBYTE count);
 void Epd_Display_Window_Red(Epd* epd, const UBYTE *image, UBYTE count);
 void Epd_Display(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
