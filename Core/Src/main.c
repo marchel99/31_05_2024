@@ -22,7 +22,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include "max.h"
+#include "epd4in2b.h"
+#include "imagedata.h"
+#include "epdpaint.h"
+#include "fonts.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,6 +34,13 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
+#define COLORED     0
+#define UNCOLORED   1
+
+
+// Deklaracja i inicjalizacja buforów obrazów
+unsigned char blackimage[EPD_WIDTH * EPD_HEIGHT / 8];
+unsigned char ryimage[EPD_WIDTH * EPD_HEIGHT / 8];
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
@@ -79,6 +89,7 @@ int __io_putchar(int ch)
   HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
   return 1;
 }
+
 /* USER CODE END 0 */
 
 /**
@@ -116,60 +127,89 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+
+Epd epd;
+if (Epd_Init(&epd) != 0) {
+    printf("e-Paper init failed\n");
+    return 1;
+}
+else{
+  printf("e-Paper init succeed\n");
+}
+
+
+
+  /* This clears the SRAM of the e-paper display */
+  Epd_Clear(&epd);
+  
+  unsigned char image[1600];
+  Paint paint;
+  Paint_Init(&paint, image, 128, 100); // width as multiple of 8 
+  Paint_SetWidth(&paint, 128);
+  Paint_SetHeight(&paint, 100);
+
+  Paint_Clear(&paint, UNCOLORED);
+  Paint_DrawStringAt(&paint, 10, 20, "it works!", &Font16, COLORED);
+  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
+
+
+
+
+  Paint_Clear(&paint, UNCOLORED);
+
+
+
+  //prostokat lewa czesc menu
+  Paint_DrawRectangle(&paint, 0, 0, 100, 50, COLORED);
+  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);    
+
+
+
+
+  Paint_Clear(&paint, UNCOLORED);
+
+  //black circle 32->50->100
+  Paint_DrawCircle(&paint, 100, 32, 50, COLORED);
+  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);    
+
+  Paint_Clear(&paint, UNCOLORED);
+  Paint_DrawStringAt(&paint, 0, 20, "Hello world", &Font16, COLORED);
+  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
+
+  Paint_Clear(&paint, UNCOLORED);
+  Paint_DrawFilledRectangle(&paint, 60, 0, 100, 50, COLORED);
+  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 1);
+
+
+//czerwone kolo
+  Paint_Clear(&paint, UNCOLORED);
+  Paint_DrawFilledCircle(&paint, 200, 32, 25, COLORED);
+  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 1);
+
+
+
+   Epd_DisplayFrame(&epd, blackimage, ryimage);
+
+  HAL_Delay(1000);
+  /* This displays an image */
+  // Epd_DisplayFrame(IMAGE_BLACK, IMAGE_RED);
+
+  /* Deep sleep */
+  // Epd_Clear(&epd);
+  Epd_Sleep(&epd);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
+
+
+
+
+
+
   /* USER CODE BEGIN WHILE */
-
-  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-
   while (1)
   {
-    uint32_t value[2];
-    float voltage[2];
-    float voltage_scope[2];
-
-    HAL_ADC_Start(&hadc1);
-
-    // Konwersja dla kanału 0
-    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-    value[0] = HAL_ADC_GetValue(&hadc1);
-
-    // Konwersja dla kanału 1
-    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-    value[1] = HAL_ADC_GetValue(&hadc1);
-
-    // Przeliczenie wartości ADC na napięcie
-    voltage[0] = 3.3f * value[0] / 4095.0f;
-    voltage[1] = 3.3f * value[1] / 4095.0f;
-
-    voltage_scope[0] = voltage[0] + 0.05;
-    voltage_scope[1] = voltage[1] + 0.05;
-
-    printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n",
-           value[0], voltage[0], value[1], voltage[1]);
-
-    printf("sCO:%.3f mV, sHCHO:%.3f mV\n", voltage_scope[0]*1000 , voltage_scope[1]*1000);
-
-    HAL_Delay(750);
-
-    /*
-         uint32_t value[2];
-
-      HAL_ADC_Start(&hadc1);
-      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-      value[0] = HAL_ADC_GetValue(&hadc1);
-
-      HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-      value[1] = HAL_ADC_GetValue(&hadc1);
-
-      printf("value1=%lu, value2=%lu\n", value[0], value[1]);
-      HAL_Delay(250);
-
-
-
-     */
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -374,7 +414,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -498,3 +538,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+

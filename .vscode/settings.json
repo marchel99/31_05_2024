@@ -9,6 +9,8 @@
         "string.h": "c",
         "stdio.h": "c",
         "type_traits": "c",
-        "main.h": "c"
+        "main.h": "c",
+        "epd4in2b.h": "c",
+        "compare": "c"
     }
 }
