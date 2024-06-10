@@ -154,6 +154,7 @@ int main(void)
 
   Paint_Clear(&paint, UNCOLORED);
   Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
+  
   DrawBattery(&paint, 350, 10, 30, 15, COLORED);
   Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
   Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
