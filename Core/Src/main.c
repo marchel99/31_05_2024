@@ -122,8 +122,11 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+
+//struktura epd ktora przechowuje stan i konfiguracje wyswietlacza
   Epd epd;
-  if (Epd_Init(&epd) != 0)
+
+  if (Epd_Init(&epd) != 0)        //ustawienie SPI
   {
     printf("e-Paper init failed\n");
     return 1;
@@ -132,30 +135,56 @@ int main(void)
   /* This clears the SRAM of the e-paper display */
   Epd_Clear(&epd);
 
-  unsigned char image[1600];
-  Paint paint;
-  Paint_Init(&paint, image, 256, 200); // width should be the multiple of 8
-  Paint_SetWidth(&paint, 128);
-  Paint_SetHeight(&paint, 100);
+  unsigned char image[(128 * 300) / 8]; //bufor pami
+
+  Paint paint;   //struktura do rysowania
+
+  Paint_Init(&paint, image, 128, 300); // width should be the multiple of 8
+  Paint_SetWidth(&paint, 128);         // real rectangle? //multiple 8
+  Paint_SetHeight(&paint, 300);
 
   Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 20, "it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 35, "it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 20, "1 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 35, "2 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 50, "3 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 65, "4 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 80, "5 it works?!", &Font16, COLORED);
 
 
   Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
   Paint_Clear(&paint, UNCOLORED);
-  /*
-    // prostokat
-    Paint_DrawRectangle(&paint, 0, 0, 40, 50, COLORED);
-    Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
-    Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
-    Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
-   */
-  //Paint_Clear(&paint, UNCOLORED);
 
-  //Paint_DrawCircle(&paint, 100, 32, 50, COLORED);
+  // prostokat
+  Paint_DrawStringAt(&paint, 10, 0, "6 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 15, "7 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 30, "8 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 45, "9 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 60, "10 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 75, "11 it really works?!", &Font16, COLORED);
+
+
+
+  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
+
+  Paint_Clear(&paint, UNCOLORED);
+
+
+  Paint_DrawStringAt(&paint, 10, 0, "12 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 15, "13 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 30, "14 it really works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 45, "15 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 60, "16 it works?!", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 75, "17 it really works?!", &Font16, COLORED);
+
+  // Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
+  // Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
+  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
+
+  // Paint_Clear(&paint, UNCOLORED);
+
+
+  //Paint_DrawCircle(&paint, 100, 100, 20, COLORED);
   //Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
 
   // Paint_Clear(&paint, UNCOLORED);

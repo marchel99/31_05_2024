@@ -159,16 +159,16 @@ void Epd_Reset(Epd* epd) {
 
 void Epd_Display_Window_Black(Epd* epd, const UBYTE* image, UBYTE count) {
     if (count == 0 && epd->flag == 0)
-        Epd_SendCommand(epd, 0x24);
+        Epd_SendCommand(epd, 0x24); // full screen (0)
     else if (count == 0)
-        Epd_SendCommand(epd, 0x10);
+        Epd_SendCommand(epd, 0x10); //alt display (1)
 
     for (UWORD j = 0; j < 100; j++) {
         for (UWORD i = 0; i < 50; i++) {
             if (i < 16)
-                Epd_SendData(epd, image[i + (j * 16)]);
+                Epd_SendData(epd, image[i + (j * 16)]); // Wysyłanie danych obrazu
             else
-                Epd_SendData(epd, 0xFF);
+                Epd_SendData(epd, 0xFF);// Wypełnianie pozostałych pikseli wartością 0xFF (biały)
         }
     }
 }
@@ -249,7 +249,7 @@ void Epd_DisplayFrame(Epd* epd) {
 }
 
 
-void Epd_Clear(Epd* epd) {
+void Epd_Clear(Epd* epd) { //funnkcja przyjmujaca wskaznik na strukture
     if (epd->flag == 0) {
         Epd_SendCommand(epd, 0x24);
         for (UWORD j = 0; j < epd->height; j++) {

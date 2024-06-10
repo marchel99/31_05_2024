@@ -4,7 +4,7 @@
 
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height) {
     paint->image = image;
-    paint->width = width % 8 ? width + 8 - (width % 8) : width;
+    paint->width = (width % 8) ? (width + 8 - (width % 8)) : width;
     paint->height = height;
     paint->rotate = 0;
 }
@@ -22,27 +22,28 @@ void Paint_DrawPixel(Paint* paint, int x, int y, int colored) {
         return;
     }
 
+    int new_x = x;
+    int new_y = y;
+
     switch (paint->rotate) {
-        case 0:
-            break;
         case 90:
-            x = paint->width - y;
-            y = x;
+            new_x = paint->width - 1 - y;
+            new_y = x;
             break;
         case 180:
-            x = paint->width - x;
-            y = paint->height - y;
+            new_x = paint->width - 1 - x;
+            new_y = paint->height - 1 - y;
             break;
         case 270:
-            x = y;
-            y = paint->height - x;
+            new_x = y;
+            new_y = paint->height - 1 - x;
             break;
     }
 
     if (colored) {
-        paint->image[(x + y * paint->width) / 8] &= ~(0x80 >> (x % 8));
+        paint->image[(new_x + new_y * paint->width) / 8] &= ~(0x80 >> (new_x % 8));
     } else {
-        paint->image[(x + y * paint->width) / 8] |= 0x80 >> (x % 8);
+        paint->image[(new_x + new_y * paint->width) / 8] |= 0x80 >> (new_x % 8);
     }
 }
 
@@ -200,7 +201,7 @@ void Paint_DrawFilledCircle(Paint* paint, int x, int y, int radius, int colored)
 }
 
 void Paint_SetWidth(Paint* paint, int width) {
-    paint->width = width % 8 ? width + 8 - (width % 8) : width;
+    paint->width = (width % 8) ? (width + 8 - (width % 8)) : width;
 }
 
 void Paint_SetHeight(Paint* paint, int height) {
