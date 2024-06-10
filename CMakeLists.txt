@@ -46,7 +46,6 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-max17048-master/max.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/epd4in2b.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/epdpaint.c
-    ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/epdif.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font8.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font12.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font16.c

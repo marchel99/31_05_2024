@@ -33,13 +33,13 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 74,
+				"line" : 73,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 58,
+				"line" : 57,
 				"parent" : 0
 			},
 			{
@@ -167,8 +167,7 @@
 				36,
 				37,
 				38,
-				39,
-				40
+				39
 			]
 		},
 		{
@@ -239,7 +238,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				41
+				40
 			]
 		}
 	],
@@ -311,15 +310,14 @@
 				36,
 				37,
 				38,
-				39,
-				40
+				39
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				41
+				40
 			]
 		}
 	],
@@ -359,12 +357,6 @@
 			"backtrace" : 4,
 			"compileGroupIndex" : 0,
 			"path" : "Libraries/stm32-epd4in2b-master/epdpaint.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 4,
-			"compileGroupIndex" : 0,
-			"path" : "Libraries/stm32-epd4in2b-master/epdif.c",
 			"sourceGroupIndex" : 0
 		},
 		{

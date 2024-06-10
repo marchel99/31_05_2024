@@ -1,5 +1,4 @@
 #include "epd4in2b.h"
-#include "epdif.h"
 #include "stm32l4xx_hal.h"
 
 // Przypisanie pinów
@@ -12,6 +11,9 @@
 #define BUSY_PIN   BUSY_Pin
 #define BUSY_PORT  BUSY_GPIO_Port
 
+
+extern const unsigned char IMAGE_BLACK[];
+extern const unsigned char IMAGE_RED[];
 extern SPI_HandleTypeDef hspi1; 
 
 void DigitalWrite(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState value) {
@@ -54,7 +56,7 @@ void EpdIf_IfInit(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
 
-    MX_SPI1_Init(); // Call the SPI initialization function
+   // HAL_SPI_Init(); // Call the SPI initialization function
 }
 
 

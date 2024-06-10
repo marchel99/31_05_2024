@@ -1,7 +1,7 @@
 #ifndef _EPDPAINT_H_
 #define _EPDPAINT_H_
 
-#include "epdif.h"
+
 #include "fonts.h" // Dodanie tego nagłówka, aby użyć sFONT z tego pliku
 
 // Definitions of colors
