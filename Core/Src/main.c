@@ -151,23 +151,21 @@ Paint_DrawStringAt(&paint, 10, 35, "2 it really works?! 1 2 3 4 5 6 7 8 9 10 11"
 Paint_DrawStringAt(&paint, 10, 50, "3 it works?!", &Font16, COLORED);
 Paint_DrawStringAt(&paint, 10, 65, "4 it really works?!", &Font16, COLORED);
 Paint_DrawStringAt(&paint, 10, 80, "5 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 95, "6 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 110, "7 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 125, "8 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 140, "9 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 155, "0 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 170, "1 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 185, "2 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 200, "3 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 215, "4 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 230, "5 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 245, "6 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 260, "7 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 275, "It definetly worked! :)", &Font16, COLORED);
 Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
-// Drugie rysowanie
-Paint_Clear(&paint, UNCOLORED);
-Paint_DrawStringAt(&paint, 10, 0, "6 it really works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 15, "7 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 30, "8 it really works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 45, "9 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 60, "10 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 75, "11 it really works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 90, "12 it really works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 105, "13 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 120, "14 it really works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 135, "15 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 150, "16 it works?!", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 165, "17 it really works?!", &Font16, COLORED);
-Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
 
 // Finalizacja wyświetlania
 Epd_DisplayFrame(&epd);
