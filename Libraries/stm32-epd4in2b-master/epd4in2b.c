@@ -296,3 +296,35 @@ void Epd_Sleep(Epd* epd) {
 }
 
 
+
+void Epd_DisplayPartialWindow(Epd* epd, const unsigned char* image, int x, int y, int width, int height) {
+    // Enter partial mode
+    Epd_SendCommand(epd, 0x91); // Partial In (PTIN)
+
+    // Set partial window
+    Epd_SendCommand(epd, 0x90); // Partial Window (PTL)
+    Epd_SendData(epd, (x >> 8) & 0xFF);          // HRST[8:3]
+    Epd_SendData(epd, x & 0xFF);                 // HRST[2:0]
+    Epd_SendData(epd, ((x + width - 1) >> 8) & 0xFF);  // HRED[8:3]
+    Epd_SendData(epd, (x + width - 1) & 0xFF);        // HRED[2:0]
+    Epd_SendData(epd, (y >> 8) & 0xFF);          // VRST[8:0]
+    Epd_SendData(epd, y & 0xFF);
+    Epd_SendData(epd, ((y + height - 1) >> 8) & 0xFF); // VRED[8:0]
+    Epd_SendData(epd, (y + height - 1) & 0xFF);
+
+    // Write RAM for black/white data
+    Epd_SendCommand(epd, 0x10);
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < (width / 8); i++) {
+            Epd_SendData(epd, image[i + j * (width / 8)]);
+        }
+    }
+
+    // Refresh display
+    Epd_SendCommand(epd, 0x12); // Display Refresh (DRF)
+    Epd_ReadBusy(epd);
+
+    // Exit partial mode
+    Epd_SendCommand(epd, 0x92); // Partial Out (PTOUT)
+}
+

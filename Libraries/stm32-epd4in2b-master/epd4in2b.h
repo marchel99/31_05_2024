@@ -49,7 +49,7 @@ void SpiTransfer(uint8_t data);
 void DelayMs(uint32_t ms);
 void EpdIf_IfInit(void);
 
-
+void Epd_DisplayPartialWindow(Epd* epd, const unsigned char* image, int x, int y, int width, int height);
 
 
 #endif /* EPD4IN2B_H */

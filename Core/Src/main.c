@@ -122,113 +122,91 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Inicjalizacja wyświetlacza i pierwsze czyszczenie
-  Epd epd;
-  if (Epd_Init(&epd) != 0)
-  {
-    printf("e-Paper init failed\n");
-    return 1;
-  }
-  Epd_Clear(&epd);
-
-  int new_width = 400; // Szerokość
-  int height = 300;    // Wysokość
-
-  // Zaktualizuj szerokość i wysokość w strukturze epd
-  epd.width = new_width;
-  epd.height = height;
-
-  unsigned char image[(new_width * height) / 8];
-  Paint paint;
-  Paint_Init(&paint, image, new_width, height);
-  Paint_SetWidth(&paint, new_width);
-  Paint_SetHeight(&paint, height);
-
-  // Pierwsze rysowanie CZERWONO
-  Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
-
-  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
-
-  Paint_Clear(&paint, UNCOLORED);
-
-  Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
-
-  DrawBattery(&paint, 350, 10, 30, 15, COLORED);
-  Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
-  // Paint_DrawStringAt(&paint, 10, 80, "5", &Font16, COLORED);
-  // Paint_DrawStringAt(&paint, 10, 95, "6 ", &Font16, COLORED);
-
-  Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
-
-  Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
-
-  // Tekst w lewym prostokącie
-  Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
-
-  // Tekst w prawym prostokącie
-  Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-
-  Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-   Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
-
-  /*
-    Paint_DrawStringAt(&paint, 10, 110, "7", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 125, "8 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 140, "9 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 155, "0 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 170, "1 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 185, "2 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 200, "3 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 215, "4 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 230, "5 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 245, "6 ", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 260, "7 ", &Font16, COLORED); */
-
-  Paint_DrawStringAt(&paint, 10, 275, "       Created by Marchel99", &Font16, COLORED);
-
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
 
 
 
+   // Initialization code...
 
-  // Finalizacja wyświetlania
-  Epd_DisplayFrame(&epd);
-  HAL_Delay(1000);
+    Epd epd;
+    if (Epd_Init(&epd) != 0) {
+        printf("e-Paper init failed\n");
+        return 1;
+    }
+    Epd_Clear(&epd);
 
-  // Uśpienie wyświetlacza
-  Epd_Sleep(&epd);
+    int new_width = 400; // Width
+    int height = 300;    // Height
+    epd.width = new_width;
+    epd.height = height;
 
-  /* USER CODE END 2 */
+    unsigned char image[(new_width * height) / 8];
+    Paint paint;
+    Paint_Init(&paint, image, new_width, height);
+    Paint_SetWidth(&paint, new_width);
+    Paint_SetHeight(&paint, height);
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+    // Initial drawing
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
+    Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
+    Paint_Clear(&paint, UNCOLORED);
 
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
 
+    DrawBattery(&paint, 350, 10, 30, 15, COLORED);
+    Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
 
+    Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
+    Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
 
-    /* USER CODE END WHILE */
+    // Text in the left rectangle
+    Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
 
-    /* USER CODE BEGIN 3 */
-  }
+    // Text in the right rectangle
+    Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+
+    Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
+
+    
+
+    Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
+
+    // Final display update
+    Epd_DisplayFrame(&epd);
+    HAL_Delay(1000);
+
+    
+
+    int counter = 0;
+    char buffer[40];
+
+    while (1)
+    {
+        snprintf(buffer, sizeof(buffer), " Counter: %d ", counter++);
+        Paint_Clear(&paint, UNCOLORED);
+        Paint_DrawStringAt(&paint, 100, 275, buffer, &Font16, COLORED);
+        Epd_DisplayPartialWindow(&epd, Paint_GetImage(&paint), 100, 275, 50, 20);
+
+        HAL_Delay(5000);
+    }
   /* USER CODE END 3 */
 }
 
