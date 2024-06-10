@@ -146,28 +146,52 @@ int main(void)
 
   // Pierwsze rysowanie
   Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 20, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
 
-Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
+  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
 
   Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 35, "2 it really works?! 1 2 3 4 5 6 7 8 9 10 11", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 50, "3 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 65, "4 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 80, "5 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 95, "6 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 110, "7 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 125, "8 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 140, "9 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 155, "0 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 170, "1 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 185, "2 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 200, "3 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 215, "4 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 230, "5 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 245, "6 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 260, "7 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 275, "It definetly worked! :)", &Font16, COLORED);
+
+  Paint_Clear(&paint, UNCOLORED);
+  Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
+  DrawBattery(&paint, 350, 10, 30, 15, COLORED);
+  Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
+  // Paint_DrawStringAt(&paint, 10, 80, "5", &Font16, COLORED);
+  // Paint_DrawStringAt(&paint, 10, 95, "6 ", &Font16, COLORED);
+
+  Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
+  Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
+
+  // Tekst w lewym prostokącie
+  Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
+
+  // Tekst w prawym prostokącie
+  Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
+  Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+
+  /*
+    Paint_DrawStringAt(&paint, 10, 110, "7", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 125, "8 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 140, "9 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 155, "0 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 170, "1 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 185, "2 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 200, "3 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 215, "4 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 230, "5 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 245, "6 ", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 260, "7 ", &Font16, COLORED); */
+
+  Paint_DrawStringAt(&paint, 10, 275, "       Created by Marchel99", &Font16, COLORED);
+
   Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
   // Finalizacja wyświetlania

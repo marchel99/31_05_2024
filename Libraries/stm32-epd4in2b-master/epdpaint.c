@@ -102,6 +102,56 @@ void Paint_DrawRectangle(Paint* paint, int x0, int y0, int x1, int y1, int color
     Paint_DrawVerticalLine(paint, max_x, min_y, max_y - min_y + 1, colored);
 }
 
+// rectangle with padding
+
+void Paint_DrawRoundedRectangle(Paint* paint, int x0, int y0, int x1, int y1, int r, int colored) {
+    // Rysowanie prostych odcinków
+    Paint_DrawHorizontalLine(paint, x0 + r, y0, x1 - x0 - 2 * r + 1, colored);
+    Paint_DrawHorizontalLine(paint, x0 + r, y1, x1 - x0 - 2 * r + 1, colored);
+    Paint_DrawVerticalLine(paint, x0, y0 + r, y1 - y0 - 2 * r + 1, colored);
+    Paint_DrawVerticalLine(paint, x1, y0 + r, y1 - y0 - 2 * r + 1, colored);
+
+    // Rysowanie zaokrąglonych rogów
+    Paint_DrawCircleQuarter(paint, x0 + r, y0 + r, r, 1, colored); // Lewy górny róg
+    Paint_DrawCircleQuarter(paint, x1 - r, y0 + r, r, 2, colored); // Prawy górny róg
+    Paint_DrawCircleQuarter(paint, x0 + r, y1 - r, r, 3, colored); // Lewy dolny róg
+    Paint_DrawCircleQuarter(paint, x1 - r, y1 - r, r, 4, colored); // Prawy dolny róg
+}
+
+// Funkcja rysująca ćwiartkę okręgu
+void Paint_DrawCircleQuarter(Paint* paint, int x, int y, int r, int quarter, int colored) {
+    int x_pos = r, y_pos = 0;
+    int err = 0;
+
+    while (x_pos >= y_pos) {
+        if (quarter == 1) {
+            Paint_DrawPixel(paint, x - x_pos, y - y_pos, colored);
+            Paint_DrawPixel(paint, x - y_pos, y - x_pos, colored);
+        } else if (quarter == 2) {
+            Paint_DrawPixel(paint, x + x_pos, y - y_pos, colored);
+            Paint_DrawPixel(paint, x + y_pos, y - x_pos, colored);
+        } else if (quarter == 3) {
+            Paint_DrawPixel(paint, x - x_pos, y + y_pos, colored);
+            Paint_DrawPixel(paint, x - y_pos, y + x_pos, colored);
+        } else if (quarter == 4) {
+            Paint_DrawPixel(paint, x + x_pos, y + y_pos, colored);
+            Paint_DrawPixel(paint, x + y_pos, y + x_pos, colored);
+        }
+
+        if (err <= 0) {
+            y_pos += 1;
+            err += 2 * y_pos + 1;
+        }
+
+        if (err > 0) {
+            x_pos -= 1;
+            err -= 2 * x_pos + 1;
+        }
+    }
+}
+
+
+
 void Paint_DrawFilledRectangle(Paint* paint, int x0, int y0, int x1, int y1, int colored) {
     int min_x = (x0 < x1) ? x0 : x1;
     int max_x = (x0 > x1) ? x0 : x1;
@@ -226,4 +276,16 @@ int Paint_GetRotate(Paint* paint) {
 
 unsigned char* Paint_GetImage(Paint* paint) {
     return paint->image;
+}
+
+
+
+void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored) {
+    // Główny prostokąt baterii
+    Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
+
+    // Mały prostokąt jako złącze baterii
+    int connectorWidth = 5;
+    int connectorHeight = height / 2;
+    Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
 }

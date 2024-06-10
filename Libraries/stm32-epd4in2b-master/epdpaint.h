@@ -23,11 +23,16 @@ void Paint_DrawStringAt(Paint* paint, int x, int y, const char* text, sFONT* fon
 void Paint_DrawHorizontalLine(Paint* paint, int x, int y, int width, int colored);
 void Paint_DrawVerticalLine(Paint* paint, int x, int y, int height, int colored);
 void Paint_DrawRectangle(Paint* paint, int x0, int y0, int x1, int y1, int colored);
+void Paint_DrawRoundedRectangle(Paint* paint, int x0, int y0, int x1, int y1, int r, int colored);
 void Paint_DrawFilledRectangle(Paint* paint, int x0, int y0, int x1, int y1, int colored);
 void Paint_DrawLine(Paint* paint, int x0, int y0, int x1, int y1, int colored);
 void Paint_DrawImage(Paint* paint, const unsigned char* image_buffer, int x, int y, int image_width, int image_height);
 void Paint_DrawCircle(Paint* paint, int x, int y, int radius, int colored);
 void Paint_DrawFilledCircle(Paint* paint, int x, int y, int radius, int colored);
+
+void Paint_DrawCircleQuarter(Paint* paint, int x, int y, int r, int quarter, int colored);
+
+void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored);
 
 void Paint_SetWidth(Paint* paint, int width);
 void Paint_SetHeight(Paint* paint, int height);
