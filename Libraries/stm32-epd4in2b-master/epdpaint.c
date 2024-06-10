@@ -289,3 +289,17 @@ void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored)
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
 }
+
+
+
+void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, int width, int height, int colored) {
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            if (bitmap[(i / 8) + j * (width / 8)] & (1 << (7 - (i % 8)))) {
+                Paint_DrawPixel(paint, x + i, y + j, !colored);
+            } else {
+                Paint_DrawPixel(paint, x + i, y + j, colored);
+            }
+        }
+    }
+}

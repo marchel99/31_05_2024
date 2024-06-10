@@ -34,8 +34,7 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-#define COLORED 1
-#define UNCOLORED 0
+
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
@@ -55,7 +54,7 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+extern const unsigned char temperature_icon[];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -144,7 +143,7 @@ int main(void)
   Paint_SetWidth(&paint, new_width);
   Paint_SetHeight(&paint, height);
 
-  // Pierwsze rysowanie
+  // Pierwsze rysowanie CZERWONO
   Paint_Clear(&paint, UNCOLORED);
   Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
 
@@ -154,7 +153,7 @@ int main(void)
 
   Paint_Clear(&paint, UNCOLORED);
   Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
-  
+
   DrawBattery(&paint, 350, 10, 30, 15, COLORED);
   Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
   Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
@@ -163,6 +162,7 @@ int main(void)
   // Paint_DrawStringAt(&paint, 10, 95, "6 ", &Font16, COLORED);
 
   Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
+
   Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
 
   // Tekst w lewym prostokącie
@@ -177,6 +177,15 @@ int main(void)
   Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
   Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
   Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+
+  Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
+  Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
+   Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
 
   /*
     Paint_DrawStringAt(&paint, 10, 110, "7", &Font16, COLORED);
@@ -195,6 +204,10 @@ int main(void)
 
   Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
+
+
+
+
   // Finalizacja wyświetlania
   Epd_DisplayFrame(&epd);
   HAL_Delay(1000);
@@ -208,6 +221,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+
+
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

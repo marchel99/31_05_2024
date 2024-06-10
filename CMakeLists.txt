@@ -51,6 +51,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font16.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font20.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font24.c
+    ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/imagedata.c
 )
 
 # Add include paths

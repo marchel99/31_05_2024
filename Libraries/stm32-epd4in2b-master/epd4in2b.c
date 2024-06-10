@@ -294,3 +294,5 @@ void Epd_Sleep(Epd* epd) {
         Epd_SendData(epd, 0xA5);
     }
 }
+
+
