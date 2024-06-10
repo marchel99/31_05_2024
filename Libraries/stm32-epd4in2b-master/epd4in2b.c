@@ -175,32 +175,21 @@ void Epd_Display_Window_Black(Epd* epd, const UBYTE* image, UBYTE count) {
 
 
 
-
-
 void Epd_Display_Window_Red(Epd* epd, const UBYTE* image, UBYTE count) {
-    if (epd->flag == 0) {
-        Epd_SendCommand(epd, 0x26);
-        for (UWORD j = 0; j < 100; j++) {
-            for (UWORD i = 0; i < 50; i++) {
-                if (i < 16)
-                    Epd_SendData(epd, ~image[i + (j * 16)]);
-                else
-                    Epd_SendData(epd, 0x00);
-            }
-        }
-    } else {
-        Epd_SendCommand(epd, 0x13);
-        for (UWORD j = 0; j < 100; j++) {
-            for (UWORD i = 0; i < 50; i++) {
-                if (i < 16)
-                    Epd_SendData(epd, image[i + (j * 16)]);
-                else
-                    Epd_SendData(epd, 0xFF);
-            }
-        }
+    if (count == 0 && epd->flag == 0) {
+        Epd_SendCommand(epd, 0x26); // full screen (0)
+    } else if (count == 0) {
+        Epd_SendCommand(epd, 0x13); // alt display (1)
     }
 
+    for (UWORD j = 0; j < epd->height; j++) {
+        for (UWORD i = 0; i < epd->width / 8; i++) {
+            Epd_SendData(epd, image[i + (j * (epd->width / 8))]); // correct image data for red
+        }
+    }
 }
+
+
 
 void Epd_Display(Epd* epd, const UBYTE* blackimage, const UBYTE* ryimage) {
     if (epd->flag == 0) {
