@@ -157,21 +157,25 @@ void Epd_Reset(Epd* epd) {
     DelayMs(200);
 }
 
-void Epd_Display_Window_Black(Epd* epd, const UBYTE* image, UBYTE count) {
-    if (count == 0 && epd->flag == 0)
-        Epd_SendCommand(epd, 0x24); // full screen (0)
-    else if (count == 0)
-        Epd_SendCommand(epd, 0x10); //alt display (1)
 
-    for (UWORD j = 0; j < 100; j++) {
-        for (UWORD i = 0; i < 50; i++) {
-            if (i < 16)
-                Epd_SendData(epd, image[i + (j * 16)]); // Wysyłanie danych obrazu
-            else
-                Epd_SendData(epd, 0xFF);// Wypełnianie pozostałych pikseli wartością 0xFF (biały)
+void Epd_Display_Window_Black(Epd* epd, const UBYTE* image, UBYTE count) {
+    if (count == 0 && epd->flag == 0) {
+        Epd_SendCommand(epd, 0x24); // full screen (0)
+    } else if (count == 0) {
+        Epd_SendCommand(epd, 0x10); // alt display (1)
+    }
+
+    
+    for (UWORD j = 0; j < epd->height; j++) {
+        for (UWORD i = 0; i < epd->width / 8; i++) {
+            Epd_SendData(epd, image[i + (j * (epd->width / 8))]); // Wysyłanie danych obrazu
         }
     }
 }
+
+
+
+
 
 void Epd_Display_Window_Red(Epd* epd, const UBYTE* image, UBYTE count) {
     if (epd->flag == 0) {

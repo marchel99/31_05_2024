@@ -123,94 +123,58 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
-//struktura epd ktora przechowuje stan i konfiguracje wyswietlacza
-  Epd epd;
-
-  if (Epd_Init(&epd) != 0)        //ustawienie SPI
-  {
+// Inicjalizacja wyświetlacza i pierwsze czyszczenie
+Epd epd;
+if (Epd_Init(&epd) != 0) {
     printf("e-Paper init failed\n");
     return 1;
-  }
+}
+Epd_Clear(&epd);
 
-  /* This clears the SRAM of the e-paper display */
-  Epd_Clear(&epd);
+int new_width = 400; // Szerokość
+int height = 300; // Wysokość
 
-  unsigned char image[(128 * 300) / 8]; //bufor pami
+// Zaktualizuj szerokość i wysokość w strukturze epd
+epd.width = new_width;
+epd.height = height;
 
-  Paint paint;   //struktura do rysowania
+unsigned char image[(new_width * height) / 8];
+Paint paint;
+Paint_Init(&paint, image, new_width, height);
+Paint_SetWidth(&paint, new_width);
+Paint_SetHeight(&paint, height);
 
-  Paint_Init(&paint, image, 128, 300); // width should be the multiple of 8
-  Paint_SetWidth(&paint, 128);         // real rectangle? //multiple 8
-  Paint_SetHeight(&paint, 300);
+// Pierwsze rysowanie
+Paint_Clear(&paint, UNCOLORED);
+Paint_DrawStringAt(&paint, 10, 20, "1 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 35, "2 it really works?! 1 2 3 4 5 6 7 8 9 10 11", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 50, "3 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 65, "4 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 80, "5 it works?!", &Font16, COLORED);
+Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
 
-  Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 20, "1 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 35, "2 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 50, "3 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 65, "4 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 80, "5 it works?!", &Font16, COLORED);
+// Drugie rysowanie
+Paint_Clear(&paint, UNCOLORED);
+Paint_DrawStringAt(&paint, 10, 0, "6 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 15, "7 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 30, "8 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 45, "9 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 60, "10 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 75, "11 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 90, "12 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 105, "13 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 120, "14 it really works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 135, "15 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 150, "16 it works?!", &Font16, COLORED);
+Paint_DrawStringAt(&paint, 10, 165, "17 it really works?!", &Font16, COLORED);
+Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
 
+// Finalizacja wyświetlania
+Epd_DisplayFrame(&epd);
+HAL_Delay(1000);
 
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
-
-  Paint_Clear(&paint, UNCOLORED);
-
-  // prostokat
-  Paint_DrawStringAt(&paint, 10, 0, "6 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 15, "7 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 30, "8 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 45, "9 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 60, "10 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 75, "11 it really works?!", &Font16, COLORED);
-
-
-
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
-
-  Paint_Clear(&paint, UNCOLORED);
-
-
-  Paint_DrawStringAt(&paint, 10, 0, "12 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 15, "13 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 30, "14 it really works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 45, "15 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 60, "16 it works?!", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 75, "17 it really works?!", &Font16, COLORED);
-
-  // Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
-  // Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
-
-  // Paint_Clear(&paint, UNCOLORED);
-
-
-  //Paint_DrawCircle(&paint, 100, 100, 20, COLORED);
-  //Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 1);
-
-  // Paint_Clear(&paint, UNCOLORED);
-  // Paint_DrawStringAt(&paint, 0, 20, "Hello world", &Font16, COLORED);
-  // Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
-
-  // Paint_Clear(&paint, UNCOLORED);
-  // Paint_DrawFilledRectangle(&paint, 60, 0, 100, 50, COLORED);
-  // Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 1);
-
-  // czerwone kolo
-  //
-  //
-
-  // Paint_Clear(&paint, UNCOLORED);
-  // Paint_DrawFilledCircle(&paint, 200, 32, 25, COLORED);
-  // Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 1);
-
-  Epd_DisplayFrame(&epd);
-  HAL_Delay(1000);
-  /* This displays an image */
-  // Epd_DisplayFrame(IMAGE_BLACK, IMAGE_RED);
-
-  /* Deep sleep */
-  // Epd_Clear(&epd);
-  Epd_Sleep(&epd);
+// Uśpienie wyświetlacza
+Epd_Sleep(&epd);
 
   /* USER CODE END 2 */
 
