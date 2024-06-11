@@ -122,105 +122,67 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // Initialization code...
+ Epd epd;
+    if (Epd_Init(&epd) != 0) {
+        printf("e-Paper init failed\n");
+        return 1;
+    }
+    printf("e-Paper init OK!\n");
 
-  Epd epd;
-  if (Epd_Init(&epd) != 0)
-  {
-    printf("e-Paper init failed\n");
-    return 1;
-  }
-  printf("e-Paper init OK!\n");
-  Epd_Clear(&epd);
+    Epd_ClearFrame(&epd);
 
-  int new_width = 400; // Width
-  int height = 300;    // Height
-  epd.width = new_width;
-  epd.height = height;
+    int new_width = 400;
+    int height = 300;
+    epd.width = new_width;
+    epd.height = height;
 
-  unsigned char image[(new_width * height) / 8];
-  Paint paint;
-  Paint_Init(&paint, image, new_width, height);
-  Paint_SetWidth(&paint, new_width);
-  Paint_SetHeight(&paint, height);
+    unsigned char image[(new_width * height) / 8];
+    Paint paint;
+    Paint_Init(&paint, image, new_width, height);
+    Paint_SetWidth(&paint, new_width);
+    Paint_SetHeight(&paint, height);
 
-  // Initial drawing
-  Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
-  Epd_Display_Window_Red(&epd, Paint_GetImage(&paint), 0);
-  printf("Red image displayed\n");
-  Paint_Clear(&paint, UNCOLORED);
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAt(&paint, 0, 0, "e-Paper works", &Font16, COLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 100, 40, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  Paint_Clear(&paint, UNCOLORED);
-  Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
+    Paint_Clear(&paint, COLORED);
+    Paint_DrawStringAt(&paint, 100, 2, "Hello world", &Font16, UNCOLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 0, 64, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  DrawBattery(&paint, 350, 10, 30, 15, COLORED);
-  Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
+    Paint_SetWidth(&paint, 64);
+    Paint_SetHeight(&paint, 64);
 
-  Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
-  Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawRectangle(&paint, 0, 0, 40, 50, COLORED);
+    Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
+    Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 72, 120, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  // Text in the left rectangle
-  Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawCircle(&paint, 32, 32, 30, COLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 200, 120, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  // Text in the right rectangle
-  Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-  Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawFilledRectangle(&paint, 0, 0, 40, 50, COLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 72, 200, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-  Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawFilledCircle(&paint, 32, 32, 30, COLORED);
+    Epd_SetPartialWindow(&epd, Paint_GetImage(&paint), 200, 200, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
 
-  Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
-  printf("Black image displayed\n");
+    Epd_DisplayFrameSRAM(&epd);
+   
 
-  // Final display update
-  Epd_DisplayFrame(&epd);
-  HAL_Delay(1000);
+    Epd_Sleep(&epd);
+
 
   while (1)
   {
-    printf("Clear...\n");
-    Paint_Clear(&paint, UNCOLORED);
-    printf("Drawing string...\n");
-    Paint_DrawStringAt(&paint, 100, 275, "buffer", &Font16, COLORED);
 
-    // Epd_DisplayPartialWindow(&epd, image, 100, 275, 200, 20);
-    printf("Display window...\n");
-    Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
-    printf("Display frame..\n");
-    Epd_DisplayFrame(&epd);
-    printf("Display finish!\n");
-        printf("Black 1 image in while loop displayed\n");
 
-    HAL_Delay(5000);
-    printf("Clear...\n");
-    Paint_Clear(&paint, UNCOLORED);
-    printf("Drawing string...\n");
-    Paint_DrawStringAt(&paint, 100, 275, "abcef", &Font16, COLORED);
 
-    printf("Display window...\n");
-
-    Epd_Display_Window_Black(&epd, Paint_GetImage(&paint), 0);
-    printf("Display frame..\n");
-
-    Epd_DisplayFrame(&epd);
-    printf("Display finish!\n");
-        // Epd_DisplayFrame_Partial(&epd, image, 100, 275, 400, 15);
-        printf("Black 2 image in while loop displayed\n");
-    HAL_Delay(5000);
+    
   }
 }
 /* USER CODE END 3 */
