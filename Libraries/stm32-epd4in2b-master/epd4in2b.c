@@ -1,6 +1,6 @@
 #include "epd4in2b.h"
 #include "stm32l4xx_hal.h"
-
+#include <stdio.h>
 // Przypisanie pinów
 #define DC_PIN     DC_Pin
 #define DC_PORT    DC_GPIO_Port
@@ -12,9 +12,18 @@
 #define BUSY_PORT  BUSY_GPIO_Port
 
 
+
 extern const unsigned char IMAGE_BLACK[];
 extern const unsigned char IMAGE_RED[];
 extern SPI_HandleTypeDef hspi1; 
+
+
+
+
+
+
+
+
 
 void DigitalWrite(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState value) {
     HAL_GPIO_WritePin(port, pin, value);
@@ -296,35 +305,66 @@ void Epd_Sleep(Epd* epd) {
 }
 
 
+void Epd_DisplayFrame_Partial(Epd* epd, const unsigned char* image, int x, int y, int width, int height) {
 
-void Epd_DisplayPartialWindow(Epd* epd, const unsigned char* image, int x, int y, int width, int height) {
+      
+    printf("Partial Window: (%d, %d), %dx%d\n", x, y, width, height);
+
+
+
+
+// Debug: Sprawdzenie danych obrazu przed przesłaniem
+    printf("Data to be sent:\n");
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < (width / 8); i++) {
+            printf("%02X ", image[i + j * (width / 8)]);
+        }
+        printf("\n");
+    }
+
+
+
+
+
+
+
+
     // Enter partial mode
     Epd_SendCommand(epd, 0x91); // Partial In (PTIN)
 
     // Set partial window
     Epd_SendCommand(epd, 0x90); // Partial Window (PTL)
-    Epd_SendData(epd, (x >> 8) & 0xFF);          // HRST[8:3]
-    Epd_SendData(epd, x & 0xFF);                 // HRST[2:0]
-    Epd_SendData(epd, ((x + width - 1) >> 8) & 0xFF);  // HRED[8:3]
+    Epd_SendData(epd, (x >> 8) & 0xFF);               // HRST[8:3]
+    Epd_SendData(epd, x & 0xFF);                      // HRST[2:0]
+    Epd_SendData(epd, ((x + width - 1) >> 8) & 0xFF); // HRED[8:3]
     Epd_SendData(epd, (x + width - 1) & 0xFF);        // HRED[2:0]
-    Epd_SendData(epd, (y >> 8) & 0xFF);          // VRST[8:0]
+    Epd_SendData(epd, (y >> 8) & 0xFF);               // VRST[8:0]
     Epd_SendData(epd, y & 0xFF);
     Epd_SendData(epd, ((y + height - 1) >> 8) & 0xFF); // VRED[8:0]
     Epd_SendData(epd, (y + height - 1) & 0xFF);
+    Epd_SendData(epd, 0x01); // PT_SCAN (1: Gates scan both inside and outside of the partial window)
 
     // Write RAM for black/white data
-    Epd_SendCommand(epd, 0x10);
+    Epd_SendCommand(epd, 0x10); // Data Start Transmission 1
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < (width / 8); i++) {
             Epd_SendData(epd, image[i + j * (width / 8)]);
         }
     }
 
+    // Debug: Sprawdzenie danych obrazu, które są przesyłane
+    printf("Data being sent:\n");
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < (width / 8); i++) {
+            printf("%02X ", image[i + j * (width / 8)]);
+        }
+        printf("\n");
+    }
+
     // Refresh display
     Epd_SendCommand(epd, 0x12); // Display Refresh (DRF)
-    Epd_ReadBusy(epd);
+    Epd_ReadBusy(epd); // Wait until the busy signal goes LOW
 
     // Exit partial mode
     Epd_SendCommand(epd, 0x92); // Partial Out (PTOUT)
 }
-
