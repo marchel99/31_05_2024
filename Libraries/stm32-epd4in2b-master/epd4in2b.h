@@ -19,6 +19,9 @@
 #define EPD_WIDTH 400
 #define EPD_HEIGHT 300
 
+#define COLORED      1
+#define UNCOLORED    0
+
 #define UWORD unsigned int
 #define UBYTE unsigned char
 
@@ -68,6 +71,15 @@ extern const unsigned char lut_bw[];
 extern const unsigned char lut_bb[];
 extern const unsigned char lut_wb[];
 
+extern const unsigned char lut_vcom0_quick[];
+extern const unsigned char lut_ww_quick[];
+extern const unsigned char lut_bw_quick[];
+extern const unsigned char lut_bb_quick[];
+extern const unsigned char lut_wb_quick[];
+
+
+
+
 typedef struct
 {
     unsigned int width;
@@ -105,14 +117,16 @@ void Epd_WaitUntilIdle(Epd *epd);
 void Epd_Reset(Epd *epd);
 
 // PARTIAL
-void Epd_SetPartialWindow(Epd *epd, const unsigned char *buffer, int x, int y, int width, int height);
+void Epd_SetPartialWindow(Epd* epd, const unsigned char* buffer_black, int x, int y, int w, int l, int dtm);
 void SetPartialWindowBlack(Epd *epd, const unsigned char *buffer_black, int x, int y, int w, int l);
 void SetPartialWindowRed(Epd *epd, const unsigned char *buffer_red, int x, int y, int w, int l);
 
 void SetLut(Epd* epd);
+void SetLutQuick(Epd* epd);
 void Epd_Display(Epd *epd, const UBYTE *blackimage, const UBYTE *ryimage);
 void Epd_DisplayFrame(Epd* epd, const unsigned char* frame_buffer);
 void Epd_DisplayFrameSRAM(Epd *epd);
+void Epd_DisplayFrameQuick(Epd *epd);
 void Epd_ClearFrame(Epd *epd);
 void Epd_Sleep(Epd *epd);
 

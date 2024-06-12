@@ -1,4 +1,5 @@
 #include "epdpaint.h"
+#include "epd4in2b.h"
 #include <stdlib.h>
 #include <string.h>
 

@@ -413,12 +413,10 @@ void Epd_Reset(Epd* epd) {
 
 
 
-
-
 /**
- *  @brief: transmit partial data to the SRAM
+ *  @brief: transmit partial data to the SRAM. The final parameter chooses between dtm=1 and dtm=2
  */
-void Epd_SetPartialWindow(Epd* epd, const unsigned char* buffer_black, int x, int y, int w, int l) {
+void Epd_SetPartialWindow(Epd* epd, const unsigned char* buffer_black, int x, int y, int w, int l, int dtm) {
     Epd_SendCommand(epd, PARTIAL_IN);
     Epd_SendCommand(epd, PARTIAL_WINDOW);
     Epd_SendData(epd, x >> 8);
@@ -430,8 +428,8 @@ void Epd_SetPartialWindow(Epd* epd, const unsigned char* buffer_black, int x, in
     Epd_SendData(epd, (y + l - 1) >> 8);
     Epd_SendData(epd, (y + l - 1) & 0xff);
     Epd_SendData(epd, 0x01);  // Gates scan both inside and outside of the partial window (default)
-    DelayMs(2);
-    Epd_SendCommand(epd, DATA_START_TRANSMISSION_2);
+    // DelayMs(2);
+    Epd_SendCommand(epd, (dtm == 1) ? DATA_START_TRANSMISSION_1 : DATA_START_TRANSMISSION_2);
     if (buffer_black != NULL) {
         for (int i = 0; i < w / 8 * l; i++) {
             Epd_SendData(epd, buffer_black[i]);
@@ -441,9 +439,83 @@ void Epd_SetPartialWindow(Epd* epd, const unsigned char* buffer_black, int x, in
             Epd_SendData(epd, 0x00);
         }
     }
-    DelayMs(2);
+    // DelayMs(2);
     Epd_SendCommand(epd, PARTIAL_OUT);
 }
+
+
+
+/**
+ *  @brief: transmit partial black data to the SRAM
+ */
+void SetPartialWindowBlack(Epd *epd, const unsigned char *buffer_black, int x, int y, int w, int l) {
+    Epd_SendCommand(epd, PARTIAL_IN);
+    Epd_SendCommand(epd, PARTIAL_WINDOW);
+    Epd_SendData(epd, x >> 8);
+    Epd_SendData(epd, x & 0xf8);     // x should be the multiple of 8, the last 3 bit will always be ignored
+    Epd_SendData(epd, ((x & 0xf8) + w  - 1) >> 8);
+    Epd_SendData(epd, ((x & 0xf8) + w  - 1) | 0x07);
+    Epd_SendData(epd, y >> 8);        
+    Epd_SendData(epd, y & 0xff);
+    Epd_SendData(epd, (y + l - 1) >> 8);        
+    Epd_SendData(epd, (y + l - 1) & 0xff);
+    Epd_SendData(epd, 0x01);         // Gates scan both inside and outside of the partial window. (default) 
+    DelayMs(2);
+    Epd_SendCommand(epd, DATA_START_TRANSMISSION_1);
+    if (buffer_black != NULL) {
+        for(int i = 0; i < w  / 8 * l; i++) {
+            Epd_SendData(epd, buffer_black[i]);  
+        }  
+    } else {
+        for(int i = 0; i < w  / 8 * l; i++) {
+            Epd_SendData(epd, 0x00);  
+        }  
+    }
+    DelayMs(2);
+    Epd_SendCommand(epd, PARTIAL_OUT);  
+}
+
+/**
+ *  @brief: transmit partial red data to the SRAM
+ */
+void SetPartialWindowRed(Epd *epd, const unsigned char *buffer_red, int x, int y, int w, int l) {
+    Epd_SendCommand(epd, PARTIAL_IN);
+    Epd_SendCommand(epd, PARTIAL_WINDOW);
+    Epd_SendData(epd, x >> 8);
+    Epd_SendData(epd, x & 0xf8);     // x should be the multiple of 8, the last 3 bit will always be ignored
+    Epd_SendData(epd, ((x & 0xf8) + w  - 1) >> 8);
+    Epd_SendData(epd, ((x & 0xf8) + w  - 1) | 0x07);
+    Epd_SendData(epd, y >> 8);        
+    Epd_SendData(epd, y  & 0xff);
+    Epd_SendData(epd, (y + l - 1) >> 8);        
+    Epd_SendData(epd, (y + l - 1) & 0xff);
+    Epd_SendData(epd, 0x01);         // Gates scan both inside and outside of the partial window. (default) 
+    DelayMs(2);
+    Epd_SendCommand(epd, DATA_START_TRANSMISSION_2);
+    if (buffer_red != NULL) {
+        for(int i = 0; i < w  / 8 * l; i++) {
+            Epd_SendData(epd, buffer_red[i]);  
+        }  
+    } else {
+        for(int i = 0; i < w  / 8 * l; i++) {
+            Epd_SendData(epd, 0x00);  
+        }  
+    }
+    DelayMs(2);
+    Epd_SendCommand(epd, PARTIAL_OUT);  
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -490,6 +562,45 @@ void SetLut(Epd* epd) {
         Epd_SendData(epd, lut_wb[count]);
     }
 }
+
+
+
+
+
+void SetLutQuick(Epd *epd) {
+    unsigned int count;
+    Epd_SendCommand(epd, LUT_FOR_VCOM); // vcom
+    for (count = 0; count < 44; count++) {
+        Epd_SendData(epd, lut_vcom0_quick[count]);
+    }
+
+    Epd_SendCommand(epd, LUT_WHITE_TO_WHITE); // ww
+    for (count = 0; count < 42; count++) {
+        Epd_SendData(epd, lut_ww_quick[count]);
+    }
+
+    Epd_SendCommand(epd, LUT_BLACK_TO_WHITE); // bw
+    for (count = 0; count < 42; count++) {
+        Epd_SendData(epd, lut_bw_quick[count]);
+    }
+
+    Epd_SendCommand(epd, LUT_WHITE_TO_BLACK); // wb
+    for (count = 0; count < 42; count++) {
+        Epd_SendData(epd, lut_wb_quick[count]);
+    }
+
+    Epd_SendCommand(epd, LUT_BLACK_TO_BLACK); // bb
+    for (count = 0; count < 42; count++) {
+        Epd_SendData(epd, lut_bb_quick[count]);
+    }
+}
+
+
+
+
+
+
+
 
 
 
@@ -542,6 +653,8 @@ void Epd_DisplayFrame(Epd* epd, const unsigned char* frame_buffer) {
 
 
 
+
+
 /**
  * @brief: clear the frame data from the SRAM, this won't refresh the display
  */
@@ -572,17 +685,21 @@ void Epd_ClearFrame(Epd* epd) {
  * @brief: This displays the frame data from SRAM
  */
 void Epd_DisplayFrameSRAM(Epd* epd) {
-    if (epd->flag == 0) {
-        Epd_SendCommand(epd, 0x22);
-        Epd_SendData(epd, 0xF7);
-        Epd_SendCommand(epd, 0x20);
-        Epd_ReadBusy(epd);
-    } else {
-        Epd_SendCommand(epd, 0x12);
-        DelayMs(100);
-        Epd_ReadBusy(epd);
+  SetLut(epd);
+    Epd_SendCommand(epd, DISPLAY_REFRESH); 
+    DelayMs(100);
+    Epd_ReadBusy(epd);
     }
+
+void Epd_DisplayFrameQuick(Epd *epd) {
+    SetLutQuick(epd);
+    Epd_SendCommand(epd, DISPLAY_REFRESH);
+    // DelayMs(100);
+    // Epd_ReadBusy(epd);
 }
+
+
+
 
 
 
@@ -656,4 +773,58 @@ const unsigned char lut_wb[] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             
+};
+
+
+
+
+const unsigned char lut_vcom0_quick[] = {
+    0x00, 0x0E, 0x00, 0x00, 0x00, 0x01,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,        
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+const unsigned char lut_ww_quick[] = {
+    0xA0, 0x0E, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+
+const unsigned char lut_bw_quick[] = {
+    0xA0, 0x0E, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+const unsigned char lut_bb_quick[] = {
+    0x50, 0x0E, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+const unsigned char lut_wb_quick[] = {
+    0x50, 0x0E, 0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
