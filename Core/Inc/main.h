@@ -65,6 +65,14 @@ void Error_Handler(void);
 #define CS_GPIO_Port GPIOA
 #define BUSY_Pin GPIO_PIN_0
 #define BUSY_GPIO_Port GPIOB
+#define CS2_Pin GPIO_PIN_9
+#define CS2_GPIO_Port GPIOA
+#define SW_Pin GPIO_PIN_12
+#define SW_GPIO_Port GPIOA
+#define EN_CLK_Pin GPIO_PIN_15
+#define EN_CLK_GPIO_Port GPIOA
+#define EN_DT_Pin GPIO_PIN_3
+#define EN_DT_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

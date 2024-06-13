@@ -114,19 +114,11 @@ int Epd_Init_old(Epd* epd) {
 }
 
 
-
 void Epd_ReadBusy(Epd* epd) {
-    if (epd->flag == 0) {
-        while (DigitalRead(epd->busy_port, epd->busy_pin) == GPIO_PIN_SET) {
-            DelayMs(100);
-        }
-    } else {
-        while (DigitalRead(epd->busy_port, epd->busy_pin) == GPIO_PIN_RESET) {
-            DelayMs(100);
-        }
+    while (HAL_GPIO_ReadPin(epd->busy_port, epd->busy_pin) == GPIO_PIN_RESET) {  // 0: busy, 1: idle
+        HAL_Delay(1);  // Short delay to avoid busy-waiting
     }
 }
-
 
 
 

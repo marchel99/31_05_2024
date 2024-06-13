@@ -15,6 +15,12 @@
 extern const unsigned char IMAGE_BLACK[];
 extern const unsigned char IMAGE_RED[];
 
+
+extern const unsigned char IMAGE_BUTTERFLY[];
+extern const unsigned char IMAGE_ASCIENCE[];
+extern const unsigned char IMAGE_PLAYBUTTON[];
+
+
 extern const unsigned char icon_humi[];
 extern const unsigned char icon_temp[];
 extern const unsigned char icon_settings[];
@@ -23,6 +29,10 @@ extern const unsigned char icon_sun[];
 extern const unsigned char icon_sunrise[];
 extern const unsigned char icon_sunset[];
 extern const unsigned char icon_wind[];
+
+
+
+
 
 #endif 
 /* IMAGEDATA_H */

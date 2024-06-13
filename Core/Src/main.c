@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <math.h>
 #include "epd4in2b.h"
 #include "imagedata.h"
 #include "epdpaint.h"
@@ -34,7 +35,6 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
@@ -51,6 +51,8 @@ I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -64,6 +66,7 @@ static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -87,9 +90,9 @@ int __io_putchar(int ch)
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
@@ -119,150 +122,69 @@ int main(void)
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_SPI1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
-  // Initialization code...
-  
-   MX_GPIO_Init();
-    MX_SPI1_Init();
+HAL_TIM_Encoder_Start(&htim2,TIM_CHANNEL_ALL);
 
-    printf("e-Paper init OK!\n");
+  /* USER CODE END 2 */
 
-    Epd epd;
-    if (Epd_Init(&epd) != 0) {
-        printf("e-Paper init failed\n");
-        return 1;
-    }
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    uint32_t value[2];
+    float voltage[2];
 
-
-printf("e-Paper init OK!\n");
-
-
-  Epd_ClearFrame(&epd);
-int new_width = 400; // Width
-int height = 300;    // Height
-epd.width = new_width;
-epd.height = height;
-
-unsigned char image[(new_width * height) / 8];
-Paint paint;
-Paint_Init(&paint, image, new_width, height);
-Paint_SetWidth(&paint, new_width);
-Paint_SetHeight(&paint, height);
-
-// Initial drawing
-Paint_Clear(&paint, UNCOLORED);
-Paint_DrawStringAt(&paint, 10, 10, "       SD card not detected! ", &Font16, COLORED);
-SetPartialWindowRed(&epd, Paint_GetImage(&paint), 0, 0, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
-printf("Red image displayed\n");
-Paint_Clear(&paint, UNCOLORED);
-
-Paint_Clear(&paint, UNCOLORED);
-Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
-
-DrawBattery(&paint, 350, 10, 30, 15, COLORED);
-Paint_DrawStringAt(&paint, 10, 10, "17:22", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 25, "10/06/2024", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
-
-Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
-Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
-
-// Text in the left rectangle
-Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
-
-// Text in the right rectangle
-Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-
-Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
-
-SetPartialWindowBlack(&epd, Paint_GetImage(&paint), 0, 0, Paint_GetWidth(&paint), Paint_GetHeight(&paint));
-printf("Black image displayed\n");
-
-// Final display update
-Epd_DisplayFrameSRAM(&epd);
-HAL_Delay(1000);
-
-while (1) {
-    
-
-printf("Clear...\n");
-    Paint_Clear(&paint, UNCOLORED);
-    printf("Drawing string...\n");
-    Paint_DrawStringAt(&paint, 100, 275, "buffer", &Font16, COLORED);
-
-    printf("Display window...\n");
-    SetPartialWindowBlack(&epd, Paint_GetImage(&paint), 100, 275, 200, 20);
-    printf("Display frame..\n");
-    Epd_DisplayFrameSRAM(&epd);
-    printf("Display finish!\n");
-    printf("Black 1 image in while loop displayed\n");
-
-    HAL_Delay(5000);
-
-    printf("Clear...\n");
-    Paint_Clear(&paint, UNCOLORED);
-    printf("Drawing string...\n");
-    Paint_DrawStringAt(&paint, 100, 275, "abcef", &Font16, COLORED);
-
-    printf("Display window...\n");
-    SetPartialWindowBlack(&epd, Paint_GetImage(&paint), 100, 275, 200, 20);
-    printf("Display frame..\n");
-    Epd_DisplayFrameSRAM(&epd);
-    printf("Display finish!\n");
-    printf("Black 2 image in while loop displayed\n");
-
-    HAL_Delay(5000);
+unsigned short en_count;
+en_count=__HAL_TIM_GET_COUNTER(&htim2);
+printf("Odczyt:%d\n",en_count);
 
 
 
+    HAL_ADC_Start(&hadc1);
+
+    // Konwersja dla kanału 0
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[0] = HAL_ADC_GetValue(&hadc1);
+
+    // Konwersja dla kanału 1
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[1] = HAL_ADC_GetValue(&hadc1);
+
+    // Przeliczenie wartości ADC na napięcie
+    voltage[0] = 3.3f * value[0] / 4095.0f;
+    voltage[1] = 3.3f * value[1] / 4095.0f;
+
+     printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n", value[0], voltage[0], value[1], voltage[1]);
+
+    HAL_Delay(250);
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
 }
-
- 
-
-
-
-
-
-
-  
-
-}
-/* USER CODE END 3 */
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
-   */
+  */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the RCC Oscillators according to the specified parameters
-   * in the RCC_OscInitTypeDef structure.
-   */
+  * in the RCC_OscInitTypeDef structure.
+  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = 0;
@@ -280,8 +202,9 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -294,10 +217,10 @@ void SystemClock_Config(void)
 }
 
 /**
- * @brief ADC1 Initialization Function
- * @param None
- * @retval None
- */
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_ADC1_Init(void)
 {
 
@@ -313,7 +236,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-   */
+  */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
@@ -335,7 +258,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure the ADC multi-mode
-   */
+  */
   multimode.Mode = ADC_MODE_INDEPENDENT;
   if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
   {
@@ -343,7 +266,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-   */
+  */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
@@ -356,7 +279,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-   */
+  */
   sConfig.Channel = ADC_CHANNEL_2;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -366,13 +289,14 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
- * @brief I2C1 Initialization Function
- * @param None
- * @retval None
- */
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_I2C1_Init(void)
 {
 
@@ -398,14 +322,14 @@ static void MX_I2C1_Init(void)
   }
 
   /** Configure Analogue filter
-   */
+  */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
-   */
+  */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
     Error_Handler();
@@ -413,13 +337,14 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
- * @brief SPI1 Initialization Function
- * @param None
- * @retval None
- */
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_SPI1_Init(void)
 {
 
@@ -438,7 +363,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -452,13 +377,63 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
 }
 
 /**
- * @brief USART2 Initialization Function
- * @param None
- * @retval None
- */
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_Encoder_InitTypeDef sConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 0;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 29;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC1Filter = 0;
+  sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+  sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+  sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+  sConfig.IC2Filter = 0;
+  if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_USART2_UART_Init(void)
 {
 
@@ -486,18 +461,19 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-  /* USER CODE END MX_GPIO_Init_1 */
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
@@ -506,10 +482,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DC_Pin | RST_Pin | CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DC_Pin|RST_Pin|CS_Pin|CS2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : DC_Pin RST_Pin CS_Pin */
-  GPIO_InitStruct.Pin = DC_Pin | RST_Pin | CS_Pin;
+  /*Configure GPIO pins : DC_Pin RST_Pin CS_Pin CS2_Pin */
+  GPIO_InitStruct.Pin = DC_Pin|RST_Pin|CS_Pin|CS2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -521,8 +497,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-  /* USER CODE END MX_GPIO_Init_2 */
+  /*Configure GPIO pin : PC6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SW_Pin */
+  GPIO_InitStruct.Pin = SW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(SW_GPIO_Port, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -530,9 +518,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -540,18 +528,21 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+
+
+    
   }
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
