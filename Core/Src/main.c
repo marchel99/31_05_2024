@@ -58,6 +58,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 extern const unsigned char temperature_icon[];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,13 +70,17 @@ static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-
+void SD_Select(void);
+void SD_Deselect(void);
+uint8_t SPI_Send(uint8_t data);
+void SD_SendCommand(uint8_t cmd, uint32_t arg, uint8_t crc);
+uint8_t SD_GetResponse(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-//PRINTF
+// PRINTF
 int __io_putchar(int ch)
 {
   if (ch == '\n')
@@ -92,31 +97,25 @@ int __io_putchar(int ch)
 FATFS fs;
 FIL fil;
 FRESULT fres;
+UINT br, bw;
 /* Helper functions for SD card communication */
-
-
 
 
 void SD_TestLowLevel(void) {
     printf("Testowanie niskopoziomowej komunikacji SPI z kartą SD...\n");
-
     SD_Deselect();
     HAL_Delay(10);
+    SD_Select();
     for (uint8_t i = 0; i < 10; i++) {
         SPI_Send(0xFF); // Wysyłanie 80 taktów do inicjalizacji karty SD
     }
-
     SD_SendCommand(0, 0, 0x95); // Wysyłanie CMD0
     uint8_t response = SD_GetResponse();
+    printf("Odpowiedź CMD0: %02X\n", response);
     SD_Deselect();
-
-    if (response == 0x01) {
-        printf("Karta SD odpowiada na CMD0.\n");
-    } else {
-        printf("Brak odpowiedzi od karty SD na CMD0. Odpowiedź: %02X\n", response);
-        while(1);
-    }
 }
+
+
 /* USER CODE END 0 */
 
 /**
@@ -128,7 +127,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   printf("Start!\n\n");
-  
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -157,48 +156,70 @@ int main(void)
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
-HAL_TIM_Encoder_Start(&htim2,TIM_CHANNEL_ALL);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
-
-// Testowanie niskopoziomowej komunikacji SPI z kartą SD
+  // Testowanie niskopoziomowej komunikacji SPI z kartą SD
   SD_TestLowLevel();
 
-  printf("Przed montowaniem systemu plików\n");
-  fres = f_mount(&fs, "", 1);
-  if (fres != FR_OK) {
-      printf("Nieudane montowanie systemu plików. Kod błędu: %d\n", fres);
-      while (1);
-  }
-  printf("Po montowaniu systemu plików\n");
+  
 
-  printf("Przed tworzeniem i otwieraniem pliku do zapisu\n");
-  fres = f_open(&fil, "test.txt", FA_WRITE | FA_CREATE_ALWAYS);
-  if (fres != FR_OK) {
-      printf("Nieudane otwarcie pliku. Kod błędu: %d\n", fres);
-      while (1);
-  }
-  printf("Po otwieraniu pliku do zapisu\n");
 
-  printf("Przed zapisem do pliku\n");
-  if (f_printf(&fil, "Witaj, STM32 i FatFs!") < 0) {
-      printf("Nieudany zapis do pliku.\n");
-  }
-  f_close(&fil);
-  printf("Po zapisie do pliku\n");
 
-  printf("Przed odczytem z pliku\n");
-  fres = f_open(&fil, "test.txt", FA_READ);
-  if (fres == FR_OK) {
-      char buffer[64];
-      UINT br;  // Liczba przeczytanych bajtów
-      f_read(&fil, buffer, sizeof(buffer)-1, &br);
-      buffer[br] = '\0';  // Dodanie zakończenia stringu
-      printf("Odczytane dane: %s\n", buffer);
-      f_close(&fil);
-  } else {
-      printf("Nieudane otwarcie pliku do odczytu. Kod błędu: %d\n", fres);
-  }
-  printf("Po odczycie z pliku\n");
+
+   // Inicjalizacja FatFs
+    printf("Przed montowaniem systemu plików\n");
+    fres = f_mount(&fs, "", 1);
+    if (fres != FR_OK) {
+        printf("Nieudane montowanie systemu plików. Kod błędu: %d\n", fres);
+        Error_Handler();
+    }
+    printf("System plików zamontowany\n");
+
+    // Zapis danych do pliku na karcie microSD
+    printf("Przed tworzeniem i otwieraniem pliku do zapisu\n");
+    fres = f_open(&fil, "test.txt", FA_WRITE | FA_CREATE_ALWAYS);
+    if (fres != FR_OK) {
+        printf("Nieudane otwarcie pliku. Kod błędu: %d\n", fres);
+        Error_Handler();
+    }
+    printf("Plik otwarty do zapisu\n");
+
+    char *text = "Witaj, STM32 i FatFs!";
+    fres = f_write(&fil, text, strlen(text), &bw);
+    if (fres != FR_OK || bw != strlen(text)) {
+        printf("Nieudany zapis do pliku. Kod błędu: %d\n", fres);
+        Error_Handler();
+    }
+    f_close(&fil);
+    printf("Dane zapisane do pliku\n");
+
+    // Odczyt danych z pliku na karcie microSD
+    printf("Przed otwieraniem pliku do odczytu\n");
+    fres = f_open(&fil, "test.txt", FA_READ);
+    if (fres != FR_OK) {
+        printf("Nieudane otwarcie pliku do odczytu. Kod błędu: %d\n", fres);
+        Error_Handler();
+    }
+    printf("Plik otwarty do odczytu\n");
+
+    char buffer[64];
+    fres = f_read(&fil, buffer, sizeof(buffer)-1, &br);
+    if (fres != FR_OK) {
+        printf("Nieudany odczyt z pliku. Kod błędu: %d\n", fres);
+        Error_Handler();
+    }
+    buffer[br] = '\0';  // Dodanie zakończenia stringu
+    printf("Odczytane dane: %s\n", buffer);
+    f_close(&fil);
+
+    // Kończymy montowanie systemu plików
+    f_mount(NULL, "", 1);
+
+
+
+
+
+
 
 
   /* USER CODE END 2 */
@@ -210,11 +231,9 @@ HAL_TIM_Encoder_Start(&htim2,TIM_CHANNEL_ALL);
     uint32_t value[2];
     float voltage[2];
 
-unsigned short en_count;
-en_count=__HAL_TIM_GET_COUNTER(&htim2);
-printf("Odczyt:%d\n",en_count);
-
-
+    unsigned short en_count;
+    en_count = __HAL_TIM_GET_COUNTER(&htim2);
+    printf("Odczyt:%d\n", en_count);
 
     HAL_ADC_Start(&hadc1);
 
@@ -230,7 +249,7 @@ printf("Odczyt:%d\n",en_count);
     voltage[0] = 3.3f * value[0] / 4095.0f;
     voltage[1] = 3.3f * value[1] / 4095.0f;
 
-     printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n", value[0], voltage[0], value[1], voltage[1]);
+    printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n", value[0], voltage[0], value[1], voltage[1]);
 
     HAL_Delay(250);
     /* USER CODE END WHILE */
@@ -602,9 +621,6 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
-
-
-    
   }
   /* USER CODE END Error_Handler_Debug */
 }
