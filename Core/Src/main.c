@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -74,7 +75,7 @@ static void MX_TIM2_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// POD PRINTF
+//PRINTF
 int __io_putchar(int ch)
 {
   if (ch == '\n')
@@ -87,6 +88,35 @@ int __io_putchar(int ch)
   return 1;
 }
 
+
+FATFS fs;
+FIL fil;
+FRESULT fres;
+/* Helper functions for SD card communication */
+
+
+
+
+void SD_TestLowLevel(void) {
+    printf("Testowanie niskopoziomowej komunikacji SPI z kartą SD...\n");
+
+    SD_Deselect();
+    HAL_Delay(10);
+    for (uint8_t i = 0; i < 10; i++) {
+        SPI_Send(0xFF); // Wysyłanie 80 taktów do inicjalizacji karty SD
+    }
+
+    SD_SendCommand(0, 0, 0x95); // Wysyłanie CMD0
+    uint8_t response = SD_GetResponse();
+    SD_Deselect();
+
+    if (response == 0x01) {
+        printf("Karta SD odpowiada na CMD0.\n");
+    } else {
+        printf("Brak odpowiedzi od karty SD na CMD0. Odpowiedź: %02X\n", response);
+        while(1);
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -97,7 +127,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+  printf("Start!\n\n");
+  
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -123,9 +154,52 @@ int main(void)
   MX_ADC1_Init();
   MX_SPI1_Init();
   MX_TIM2_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
 HAL_TIM_Encoder_Start(&htim2,TIM_CHANNEL_ALL);
+
+
+// Testowanie niskopoziomowej komunikacji SPI z kartą SD
+  SD_TestLowLevel();
+
+  printf("Przed montowaniem systemu plików\n");
+  fres = f_mount(&fs, "", 1);
+  if (fres != FR_OK) {
+      printf("Nieudane montowanie systemu plików. Kod błędu: %d\n", fres);
+      while (1);
+  }
+  printf("Po montowaniu systemu plików\n");
+
+  printf("Przed tworzeniem i otwieraniem pliku do zapisu\n");
+  fres = f_open(&fil, "test.txt", FA_WRITE | FA_CREATE_ALWAYS);
+  if (fres != FR_OK) {
+      printf("Nieudane otwarcie pliku. Kod błędu: %d\n", fres);
+      while (1);
+  }
+  printf("Po otwieraniu pliku do zapisu\n");
+
+  printf("Przed zapisem do pliku\n");
+  if (f_printf(&fil, "Witaj, STM32 i FatFs!") < 0) {
+      printf("Nieudany zapis do pliku.\n");
+  }
+  f_close(&fil);
+  printf("Po zapisie do pliku\n");
+
+  printf("Przed odczytem z pliku\n");
+  fres = f_open(&fil, "test.txt", FA_READ);
+  if (fres == FR_OK) {
+      char buffer[64];
+      UINT br;  // Liczba przeczytanych bajtów
+      f_read(&fil, buffer, sizeof(buffer)-1, &br);
+      buffer[br] = '\0';  // Dodanie zakończenia stringu
+      printf("Odczytane dane: %s\n", buffer);
+      f_close(&fil);
+  } else {
+      printf("Nieudane otwarcie pliku do odczytu. Kod błędu: %d\n", fres);
+  }
+  printf("Po odczycie z pliku\n");
+
 
   /* USER CODE END 2 */
 
