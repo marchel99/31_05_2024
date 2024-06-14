@@ -351,12 +351,24 @@ void Epd_Display(Epd *epd, const UBYTE *image) {
 
 
 
-
 void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
 {
-    unsigned int width = (x_end - x_start) / 8;
-    unsigned int height = y_end - y_start;
-    unsigned int image_counter = width * height;
+    unsigned int i, width;
+    unsigned int image_counter;
+
+    if((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0) {
+        x_start = x_start / 8;
+        x_end = x_end / 8;
+    } else {
+        x_start = x_start / 8;
+        x_end = x_end % 8 == 0 ? x_end / 8 : x_end / 8 + 1;
+    }
+
+    width = x_end - x_start;
+    image_counter = width * (y_end - y_start);
+
+    x_end -= 1;
+    y_end -= 1;
 
     Epd_Reset(epd);
 
@@ -372,13 +384,13 @@ void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, u
 
     Epd_SendCommand(epd, 0x44);
     Epd_SendData(epd, x_start & 0xff);
-    Epd_SendData(epd, (x_end - 1) & 0xff);
+    Epd_SendData(epd, x_end & 0xff);
 
     Epd_SendCommand(epd, 0x45);
     Epd_SendData(epd, y_start & 0xff);
     Epd_SendData(epd, (y_start >> 8) & 0x01);
-    Epd_SendData(epd, (y_end - 1) & 0xff);
-    Epd_SendData(epd, ((y_end - 1) >> 8) & 0x01);
+    Epd_SendData(epd, y_end & 0xff);
+    Epd_SendData(epd, (y_end >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x4E);
     Epd_SendData(epd, x_start & 0xff);
@@ -388,8 +400,7 @@ void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, u
     Epd_SendData(epd, (y_start >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x24);
-    for (unsigned int i = 0; i < image_counter; i++)
-    {
+    for (i = 0; i < image_counter; i++) {
         Epd_SendData(epd, image[i]);
     }
     Epd_TurnOnDisplay_Partial(epd);

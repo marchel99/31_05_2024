@@ -9,7 +9,7 @@
  * Copyright (c) 2024 STMicroelectronics.
  * All rights reserved.
  *
- * This software is licensed under terms that can be found in the LICENSE file
+ * This software is licensed pod terms that can be found in the LICENSE file
  * in the root directory of this software component.
  * If no LICENSE file comes with this software, it is provided AS-IS.
  *
@@ -32,7 +32,6 @@
 /* USER CODE BEGIN PTD */
 #define COLORED 1
 #define UNCOLORED 0
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -49,11 +48,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-
 I2C_HandleTypeDef hi2c1;
-
 SPI_HandleTypeDef hspi1;
-
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -95,7 +91,6 @@ int __io_putchar(int ch)
  */
 int main(void)
 {
-
     /* USER CODE BEGIN 1 */
 
     /* USER CODE END 1 */
@@ -131,8 +126,6 @@ int main(void)
     Paint paint;
 
     Paint_Init(&paint, image, 400, 300);
-    Paint_SetWidth(&paint, 400);
-    Paint_SetHeight(&paint, 300);
 
     printf("Start!\n");
 
@@ -146,57 +139,54 @@ int main(void)
     Epd_Clear(&epd);
 
     Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawStringAt(&paint, 20, 5, "HELLO", &Font16, COLORED);
-    // Aktualizacja wyświetlacza e-Paper
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 0 + Paint_GetWidth(&paint), 32 + Paint_GetHeight(&paint));
+    Paint_DrawStringAt(&paint, 20, 5, "e-Paper Demo", &Font16, COLORED);
+    printf("Drawing 'e-Paper Demo'\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 400, 32 + Paint_GetHeight(&paint));
+    printf("Displayed 'e-Paper Demo'\n");
 
     HAL_Delay(3000);
 
+    Paint_Clear(&paint, COLORED);
+    Paint_DrawStringAt(&paint, 20, 5, "Hello world!", &Font16, UNCOLORED);
+    printf("Drawing 'Hello world!'\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 64, 400, 64 + Paint_GetHeight(&paint));
+    printf("Displayed 'Hello world!'\n");
 
+    Paint_SetWidth(&paint, 64);
+    Paint_SetHeight(&paint, 64);
 
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawRectangle(&paint, 0, 0, 40, 50, COLORED);
+    Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
+    Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
+    printf("Drawing rectangle and lines\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 10, 130, 10 + Paint_GetWidth(&paint), 130 + Paint_GetHeight(&paint));
+    printf("Displayed rectangle and lines\n");
 
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawCircle(&paint, 32, 32, 30, COLORED);
+    printf("Drawing circle\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 90, 120, 90 + Paint_GetWidth(&paint), 120 + Paint_GetHeight(&paint));
+    printf("Displayed circle\n");
 
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawFilledRectangle(&paint, 0, 0, 40, 50, COLORED);
+    printf("Drawing filled rectangle\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 10, 200, 10 + Paint_GetWidth(&paint), 200 + Paint_GetHeight(&paint));
+    printf("Displayed filled rectangle\n");
 
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawFilledCircle(&paint, 32, 32, 30, COLORED);
+    printf("Drawing filled circle\n");
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 90, 190, 90 + Paint_GetWidth(&paint), 190 + Paint_GetHeight(&paint));
+    printf("Displayed filled circle\n");
 
-
-
-
-
-// Rysowanie tekstu
-    Paint_DrawStringAt(&paint, 20, 5, "HELLO", &Font16, COLORED);
-
-    // Aktualizacja wyświetlacza e-Paper
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 0 + Paint_GetWidth(&paint), 32 + Paint_GetHeight(&paint));
-
-    HAL_Delay(3000);
-
-    // Ponowna inicjalizacja wyświetlacza
-    Epd_Init(&epd);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /* This displays an image */
     printf("show 2-gray image\n");
     Epd_Display(&epd, IMAGE_BUTTERFLY);
     HAL_Delay(1000);
 
-    HAL_Delay(1000);
-
-    // Uśpienie wyświetlacza
+    /* Deep sleep */
     Epd_Sleep(&epd);
     printf("zzz...\n");
 
@@ -206,7 +196,6 @@ int main(void)
     /* USER CODE BEGIN WHILE */
     while (1)
     {
-
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
@@ -463,11 +452,6 @@ static void MX_USART2_UART_Init(void)
  * @param None
  * @retval None
  */
-
-
-
-
-
 static void MX_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -512,26 +496,23 @@ void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
-    __disable_irq();
-    while (1)
-    {
-    }
+
     /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
-{
-    /* USER CODE BEGIN 6 */
-    /* User can add his own implementation to report the file name and line number,
-       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-    /* USER CODE END 6 */
+{ 
+/* USER CODE BEGIN 6 */
+/* User can add his own implementation to report the file name and line number,
+   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

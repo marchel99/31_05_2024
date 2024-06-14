@@ -1,6 +1,10 @@
 #ifndef _EPDPAINT_H_
 #define _EPDPAINT_H_
 
+#define COLORED     1
+#define UNCOLORED   0
+
+
 
 #include "fonts.h" // Dodanie tego nagłówka, aby użyć sFONT z tego pliku
 
