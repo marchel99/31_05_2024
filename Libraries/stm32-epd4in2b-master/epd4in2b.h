@@ -39,7 +39,7 @@ void Epd_Display_Window_Red_old(Epd* epd, const UBYTE *image, UBYTE count);
 void Epd_Display_Window_Red(Epd* epd, const UBYTE *image, UBYTE count);
 void Epd_Display_old(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
 void Epd_Display_new(Epd* epd, const UBYTE *blackimage, const UBYTE *ryimage);
-
+void Epd_DisplayFull(Epd *epd, const unsigned char *image);
 void Epd_Clear(Epd* epd);
 void Epd_Sleep(Epd* epd);
 
@@ -53,6 +53,11 @@ void Epd_Display(Epd *epd, const unsigned char *image);
 void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
 void Epd_TurnOnDisplay_Partial(Epd *epd);
 void Epd_TurnOnDisplay(Epd *epd);
+
+
+void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
+
+
 
 
 #endif /* EPD4IN2B_H */

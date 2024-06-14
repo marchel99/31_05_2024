@@ -13,6 +13,9 @@ typedef struct {
     int rotate;
 } Paint;
 
+
+
+
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height);
 void Paint_Clear(Paint* paint, int colored);
 void Paint_DrawPixel(Paint* paint, int x, int y, int colored);

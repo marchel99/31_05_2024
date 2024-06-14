@@ -5,6 +5,7 @@
 #define COLORED     1
 #define UNCOLORED   0
 
+
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height) {
     paint->image = image;
     paint->width = (width % 8) ? (width + 8 - (width % 8)) : width;
@@ -69,7 +70,6 @@ void Paint_DrawCharAt(Paint* paint, int x, int y, char ascii_char, sFONT* font, 
         }
     }
 }
-
 void Paint_DrawStringAt(Paint* paint, int x, int y, const char* text, sFONT* font, int colored) {
     const char* p_text = text;
     unsigned int refcolumn = x;
@@ -80,6 +80,7 @@ void Paint_DrawStringAt(Paint* paint, int x, int y, const char* text, sFONT* fon
         p_text++;
     }
 }
+
 
 void Paint_DrawHorizontalLine(Paint* paint, int x, int y, int width, int colored) {
     for (int i = x; i < x + width; i++) {

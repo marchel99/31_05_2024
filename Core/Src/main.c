@@ -30,17 +30,19 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+#define COLORED 1
+#define UNCOLORED 0
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 
 /* USER CODE BEGIN PD */
-#define COLORED     0
-#define UNCOLORED   1
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
+
 /* USER CODE BEGIN PM */
 
 /* USER CODE END PM */
@@ -121,58 +123,83 @@ int main(void)
     MX_ADC1_Init();
     MX_SPI1_Init();
     /* USER CODE BEGIN 2 */
+
+    Epd epd;
+
+    unsigned char image[(400 * 300) / 8];
+
+    Paint paint;
+
+    Paint_Init(&paint, image, 400, 300);
+    Paint_SetWidth(&paint, 400);
+    Paint_SetHeight(&paint, 300);
+
     printf("Start!\n");
 
-    // Inicjalizacja wyświetlacza i pierwsze czyszczenie
-    Epd epd;
     if (Epd_Init(&epd) != 0)
     {
         printf("e-Paper init failed\n");
-        return 1;
+        return -1;
     }
-    printf("e-Paper init OK!\n");
+    printf("e-Paper init successful\n");
 
     Epd_Clear(&epd);
-    printf("Epd Cleared\n");
 
-    int new_width = 400; // Szerokość
-    int height = 300;    // Wysokość
-
-    // Zaktualizuj szerokość i wysokość w strukturze epd
-    epd.width = new_width;
-    epd.height = height;
-
-
-    unsigned char image[(new_width * height) / 8];
-    Paint paint;
-    Paint_Init(&paint, image, new_width, height);
-    Paint_SetWidth(&paint, new_width);
-    Paint_SetHeight(&paint, height);
-
-
-
-    // Wyczyść bufor wyświetlacza
     Paint_Clear(&paint, UNCOLORED);
-    printf("Paint cleared!\n");
-    
+    Paint_DrawStringAt(&paint, 20, 5, "HELLO", &Font16, COLORED);
+    // Aktualizacja wyświetlacza e-Paper
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 0 + Paint_GetWidth(&paint), 32 + Paint_GetHeight(&paint));
 
-HAL_Delay(2500);
+    HAL_Delay(3000);
 
-    Paint_DrawStringAt(&paint, 20, 5, "HELLO", &Font16, UNCOLORED);
-    printf("String painted!\n");
+
+
+
+
+
+
+
+
+
+
+// Rysowanie tekstu
+    Paint_DrawStringAt(&paint, 20, 5, "HELLO", &Font16, COLORED);
 
     // Aktualizacja wyświetlacza e-Paper
-    // Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, Paint_GetWidth(&paint), 32 + Paint_GetHeight(&paint));
+    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 0 + Paint_GetWidth(&paint), 32 + Paint_GetHeight(&paint));
 
-    Epd_Display(&epd, Paint_GetImage(&paint));
+    HAL_Delay(3000);
 
-    printf("Displayed!\n");
+    // Ponowna inicjalizacja wyświetlacza
+    Epd_Init(&epd);
 
-    HAL_Delay(6000);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    printf("show 2-gray image\n");
+    Epd_Display(&epd, IMAGE_BUTTERFLY);
+    HAL_Delay(1000);
+
+    HAL_Delay(1000);
 
     // Uśpienie wyświetlacza
     Epd_Sleep(&epd);
     printf("zzz...\n");
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -436,6 +463,11 @@ static void MX_USART2_UART_Init(void)
  * @param None
  * @retval None
  */
+
+
+
+
+
 static void MX_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
