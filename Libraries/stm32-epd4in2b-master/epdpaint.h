@@ -4,9 +4,7 @@
 
 #include "fonts.h" // Dodanie tego nagłówka, aby użyć sFONT z tego pliku
 
-// Definitions of colors
-#define COLORED      1
-#define UNCOLORED    0
+
 
 typedef struct {
     unsigned char* image;

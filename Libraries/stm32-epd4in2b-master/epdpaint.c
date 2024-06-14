@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define COLORED     1
+#define UNCOLORED   0
+
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height) {
     paint->image = image;
     paint->width = (width % 8) ? (width + 8 - (width % 8)) : width;
