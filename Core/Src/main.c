@@ -1,3 +1,4 @@
+
 /* USER CODE BEGIN Header */
 /**
  ******************************************************************************
@@ -23,15 +24,14 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "epd4in2b.h"
-#include "imagedata.h"
 #include "epdpaint.h"
 #include "fonts.h"
+#include "imagedata.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define COLORED 1
-#define UNCOLORED 0
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -53,7 +53,7 @@ SPI_HandleTypeDef hspi1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-extern const unsigned char temperature_icon[];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,7 +64,6 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -92,7 +91,13 @@ int __io_putchar(int ch)
 int main(void)
 {
     /* USER CODE BEGIN 1 */
+    Epd epd;
+    Paint paint;
 
+    unsigned char left_image[40 * 28 / 8];        // Bufor dla licznika
+    unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
+    int counter = 1;
+    int batteryLevel = 2;
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -119,86 +124,94 @@ int main(void)
     MX_SPI1_Init();
     /* USER CODE BEGIN 2 */
 
-    Epd epd;
-
-    unsigned char image[(400 * 300) / 8];
-
-    Paint paint;
-
-    Paint_Init(&paint, image, 400, 300);
-
-    printf("Start!\n");
-
     if (Epd_Init(&epd) != 0)
     {
         printf("e-Paper init failed\n");
-        return -1;
+        return 1;
     }
-    printf("e-Paper init successful\n");
-
     Epd_Clear(&epd);
 
     Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawStringAt(&paint, 20, 5, "e-Paper Demo", &Font16, COLORED);
-    printf("Drawing 'e-Paper Demo'\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 32, 400, 32 + Paint_GetHeight(&paint));
-    printf("Displayed 'e-Paper Demo'\n");
 
-    HAL_Delay(3000);
+    // Początkowe wypełnienie ekranu
+    unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
+    Paint_Init(&paint, full_image, 400, 300);
+    Paint_Clear(&paint, UNCOLORED);
 
-    Paint_Clear(&paint, COLORED);
-    Paint_DrawStringAt(&paint, 20, 5, "Hello world!", &Font16, UNCOLORED);
-    printf("Drawing 'Hello world!'\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 64, 400, 64 + Paint_GetHeight(&paint));
-    printf("Displayed 'Hello world!'\n");
-
-    Paint_SetWidth(&paint, 64);
-    Paint_SetHeight(&paint, 64);
+    // interfejs
 
     Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawRectangle(&paint, 0, 0, 40, 50, COLORED);
-    Paint_DrawLine(&paint, 0, 0, 40, 50, COLORED);
-    Paint_DrawLine(&paint, 40, 0, 0, 50, COLORED);
-    printf("Drawing rectangle and lines\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 10, 130, 10 + Paint_GetWidth(&paint), 130 + Paint_GetHeight(&paint));
-    printf("Displayed rectangle and lines\n");
+    Paint_DrawStringAt(&paint, 65, 10, "SD card not detected! ", &Font16, COLORED);
 
+    // Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
+
+    // DrawBattery(&paint, 350, 10, 30, 15, COLORED);
+    Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
+
+    Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
+    Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
+
+    // Tekst w lewym prostokącie
+    Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
+
+    // Tekst w prawym prostokącie
+    Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+
+    Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
+
+    Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+
+    Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+    // Ustawienie obrazu dla licznika
+    Paint_Init(&paint, left_image, 40, 28);
     Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawCircle(&paint, 32, 32, 30, COLORED);
-    printf("Drawing circle\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 90, 120, 90 + Paint_GetWidth(&paint), 120 + Paint_GetHeight(&paint));
-    printf("Displayed circle\n");
 
+    // Ustawienie obrazu dla baterii
+    Paint_Init(&paint, right_image, 40, 28);
     Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawFilledRectangle(&paint, 0, 0, 40, 50, COLORED);
-    printf("Drawing filled rectangle\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 10, 200, 10 + Paint_GetWidth(&paint), 200 + Paint_GetHeight(&paint));
-    printf("Displayed filled rectangle\n");
-
-    Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawFilledCircle(&paint, 32, 32, 30, COLORED);
-    printf("Drawing filled circle\n");
-    Epd_Display_Partial(&epd, Paint_GetImage(&paint), 90, 190, 90 + Paint_GetWidth(&paint), 190 + Paint_GetHeight(&paint));
-    printf("Displayed filled circle\n");
-
-    /* This displays an image */
-    printf("show 2-gray image\n");
-    Epd_Display(&epd, IMAGE_BUTTERFLY);
-    HAL_Delay(1000);
-
-    /* Deep sleep */
-    Epd_Sleep(&epd);
-    printf("zzz...\n");
-
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
+
+    // DrawBattery(&paint, 350, 10, 30, 15, batteryLevel, COLORED);
     while (1)
     {
-        /* USER CODE END WHILE */
+        // Rysowanie licznika w lewym buforze
+        Paint_Init(&paint, left_image, 40, 28);
+        Paint_Clear(&paint, UNCOLORED);
+        char buffer[25];
+        snprintf(buffer, sizeof(buffer), "%d", counter++);
+        Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
 
-        /* USER CODE BEGIN 3 */
+        Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 0, 40, 28);
+
+        // Rysowanie baterii w prawym buforze
+        Paint_Init(&paint, right_image, 40, 28);
+        Paint_Clear(&paint, UNCOLORED);
+        DrawBattery(&paint, 5, 5, 30, 15, batteryLevel, COLORED);
+        batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
+
+        Epd_Display_Partial(&epd, Paint_GetImage(&paint), 350, 0, 390, 28);
+
+        HAL_Delay(1000); // Delay for 1 second
+
+        /* USER CODE END 2 */
     }
     /* USER CODE END 3 */
 }
@@ -442,6 +455,7 @@ static void MX_USART2_UART_Init(void)
     {
         Error_Handler();
     }
+
     /* USER CODE BEGIN USART2_Init 2 */
 
     /* USER CODE END USART2_Init 2 */
@@ -500,19 +514,19 @@ void Error_Handler(void)
     /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
-/* USER CODE BEGIN 6 */
-/* User can add his own implementation to report the file name and line number,
-   ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-/* USER CODE END 6 */
+{
+    /* USER CODE BEGIN 6 */
+    /* User can add his own implementation to report the file name and line number,
+       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

@@ -281,8 +281,7 @@ unsigned char* Paint_GetImage(Paint* paint) {
 }
 
 
-
-void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored) {
+void DrawBattery(Paint* paint, int x, int y, int width, int height, int level, int colored) {
     // Główny prostokąt baterii
     Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
 
@@ -290,7 +289,32 @@ void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored)
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
+
+    // Wysokość jednego poziomu naładowania
+    int levelHeight = (height - 4) / 3; // -4 to marginesy
+
+    for (int i = 0; i < level; i++) {
+        // Rysuj poziomy naładowania
+        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
+        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
+    }
 }
+
+
+
+
+
+void LoadBattery(Paint* paint, int x, int y, int width, int height, int level, int colored) {
+    // Wysokość jednego poziomu naładowania
+    int levelHeight = (height - 4) / 3; // -4 to marginesy
+
+    for (int i = 0; i < level; i++) {
+        // Rysuj poziomy naładowania
+        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
+        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
+    }
+}
+
 
 
 
@@ -305,3 +329,16 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

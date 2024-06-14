@@ -504,3 +504,7 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
     Epd_SendCommand(epd, 0x20);
     Epd_ReadBusy(epd);
 }
+
+
+
+

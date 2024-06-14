@@ -60,4 +60,12 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
 
 
 
+
+
+
+
+
+
+
+
 #endif /* EPD4IN2B_H */
