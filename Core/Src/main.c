@@ -179,7 +179,7 @@ int main(void)
 
 
 
-    unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego gornego  paska
+    unsigned char top_menu[400 * 300 / 8] = {0}; // Bufor dla całego gornego  paska
 
 
 
@@ -192,7 +192,7 @@ int main(void)
     Epd_Clear(&epd);
 
     // Inicjalizacja obrazu dla górnego paska
-    Paint_Init(&paint_top, top_menu, 400, 28);
+    Paint_Init(&paint_top, top_menu, 400,300);
     Paint_Clear(&paint_top, UNCOLORED);
 
 
@@ -274,7 +274,7 @@ Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
             DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
             batteryLevel = (batteryLevel + 1) % 4;
 
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
 
             impulse_counter = 0;
         }
@@ -296,7 +296,7 @@ Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
             DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
             batteryLevel = (batteryLevel + 1) % 4;
 
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
         }
 
         HAL_Delay(30); // Opóźnienie 30 ms
