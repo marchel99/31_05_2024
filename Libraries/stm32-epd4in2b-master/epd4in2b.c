@@ -633,5 +633,3 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
 
 
 
-
-

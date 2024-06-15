@@ -67,6 +67,8 @@ static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void UpdateIcons(Epd *epd, Paint icon_paints[], int selected_icon, int blink);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -95,12 +97,6 @@ int main(void)
 {
 
     /* USER CODE BEGIN 1 */
-    Epd epd;
-    Paint paint;
-    Paint left_paint;
-    Paint right_paint;
-    unsigned char left_image[40 * 28 / 8] = {0};  // Bufor dla licznika
-    unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
 
     /* USER CODE END 1 */
 
@@ -129,6 +125,24 @@ int main(void)
     MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
 
+    /* E-paper display setup */
+    Epd epd;
+    Paint paint;
+    Paint left_paint;
+    Paint right_paint;
+    Paint icons_paint;
+    unsigned char left_image[40 * 28 / 8] = {0};  // Bufor dla licznika
+    unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
+
+    unsigned char icons_image[400 * 48 / 8] = {0}; // Bufor dla ikon
+
+    unsigned char icon_buffers[8][48 * 48 / 8];
+    Paint icon_paints[8];
+    const unsigned char *icons[8] = {
+        icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
+    int icon_positions[8][2] = {
+        {5, 200}, {55, 200}, {105, 200}, {155, 200}, {205, 200}, {255, 200}, {305, 200}, {355, 200}};
+
     if (Epd_Init(&epd) != 0)
     {
         printf("e-Paper init failed\n");
@@ -136,13 +150,10 @@ int main(void)
     }
     Epd_Clear(&epd);
 
-    // Ustawienie obrazu dla licznika
-    Paint_Init(&paint, left_image, 40, 28);
-    Paint_Clear(&paint, UNCOLORED);
-
-    // Ustawienie obrazu dla baterii
-    Paint_Init(&paint, right_image, 40, 28);
-    Paint_Clear(&paint, UNCOLORED);
+    // Inicjalizacja obrazów
+    Paint_Init(&left_paint, left_image, 40, 28);
+    Paint_Init(&right_paint, right_image, 40, 28);
+    Paint_Init(&icons_paint, icons_image, 400, 48);
 
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
@@ -150,15 +161,8 @@ int main(void)
     Paint_Clear(&paint, UNCOLORED);
 
     // interfejs
-
-    Paint_Clear(&paint, UNCOLORED);
     Paint_DrawStringAt(&paint, 65, 10, "SD card not detected! ", &Font16, COLORED);
-
-    // Paint_DrawStringAt(&paint, 350, 14, " 85% ", &Font12, COLORED);
-
-    // DrawBattery(&paint, 350, 10, 30, 15, COLORED);
     Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
-
     Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
     Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
 
@@ -174,12 +178,9 @@ int main(void)
     Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
- Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+    Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
 
-
-   Epd_DisplayFull(&epd, Paint_GetImage(&paint));
-
-    // IKONY 
+    // IKONY
     Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
@@ -189,67 +190,79 @@ int main(void)
     Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
 
-   
-
-    
-
-    // Ustawienie obrazu dla licznika
-    Paint_Init(&paint, left_image, 40, 28);
-    Paint_Clear(&paint, UNCOLORED);
-
-    // Ustawienie obrazu dla baterii
-    Paint_Init(&paint, right_image, 40, 28);
-    Paint_Clear(&paint, UNCOLORED);
+    Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
-  
     /* USER CODE END 2 */
-
     /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
     int counter = 1;
     int batteryLevel = 0; // Przykładowy poziom naładowania (0-3)
     int updateBattery = 0;
-    // DrawBattery(&paint, 350, 10, 30, 15, batteryLevel, COLORED);
-    while (1)
+    int previous_encoder_position = __HAL_TIM_GET_COUNTER(&htim2);
+    int blink = 0;
+    int no_activity_counter = 0;
+
+    // Inicjalizacja buforów dla ikon
+    for (int i = 0; i < 8; i++)
     {
+        Paint_Init(&icon_paints[i], icon_buffers[i], 48, 48);
+        Paint_Clear(&icon_paints[i], UNCOLORED);
+        Paint_DrawBitmap(&icon_paints[i], icons[i], 0, 0, 48, 48, COLORED); // Inicjalne rysowanie ikon
+        Epd_Display_Partial(&epd, Paint_GetImage(&icon_paints[i]), icon_positions[i][0], icon_positions[i][1], icon_positions[i][0] + 48, icon_positions[i][1] + 48);
+    }
 
+    while (1)
 
-        // Aktualizacja licznika
-        Paint_Init(&left_paint, left_image, 40, 28);
-        Paint_Clear(&left_paint, UNCOLORED);
-        char buffer[100]; // Zwiększ rozmiar bufora
-        snprintf(buffer, sizeof(buffer), "%d", counter++);
-        Paint_DrawStringAt(&left_paint, 10, 5, buffer, &Font20, COLORED);
+    {
+        // Odczyt wartości enkodera
+        int encoder_position = __HAL_TIM_GET_COUNTER(&htim2);
+        int selected_icon = (encoder_position / (30 / 8)) % 8; // Zakładamy, że 30 pozycji to jedna ikona, 8 ikon
 
+        // Aktualizacja ikon tylko przy zmianie pozycji enkodera
+        if (encoder_position != previous_encoder_position)
+        {
+            no_activity_counter = 0;                              // Zresetuj licznik braku aktywności
+            blink = 1;                                            // Zacznij migotanie
+            UpdateIcons(&epd, icon_paints, selected_icon, blink); // Migotanie wybranej ikony
+            previous_encoder_position = encoder_position;
+        }
+        else if (no_activity_counter < 4)
+        {
+            no_activity_counter++;
+            if (no_activity_counter == 4)
+            {
+                blink = 0;                                 // Przestań migotać po 2 sekundach bez aktywności (4 * 500 ms)
+                UpdateIcons(&epd, icon_paints, -1, blink); // Wyświetl wszystkie ikony bez migotania
+            }
+        }
 
-  // Odczyt wartości enkodera
-        int encoder = __HAL_TIM_GET_COUNTER(&htim2);
-        printf("Encoder: %d\n", encoder);
-
-
-
-        Epd_Display_Partial(&epd, Paint_GetImage(&left_paint), 0, 0, 40, 28);
+        // Aktualizacja licznika co 1 sekundę
+        static int updateCounter = 0;
+        if (updateCounter % 2 == 0) // Co sekundę
+        {
+            Paint_Clear(&left_paint, UNCOLORED);
+            char buffer[15];
+            snprintf(buffer, sizeof(buffer), "%d", counter++);
+            Paint_DrawStringAt(&left_paint, 10, 5, buffer, &Font20, COLORED);
+            Epd_Display_Partial(&epd, Paint_GetImage(&left_paint), 0, 0, 40, 28);
+        }
 
         // Aktualizacja baterii co 2 sekundy
-        if (updateBattery % 2 == 0)
+        if (updateBattery % 4 == 0) // Co 2 sekundy
         {
-            Paint_Init(&right_paint, right_image, 40, 28);
             Paint_Clear(&right_paint, UNCOLORED);
             DrawBattery(&right_paint, 2, 2, 30, 15, COLORED); // Rysuj obrys baterii
             DrawBatteryLevel(&right_paint, 2, 2, 30, 15, batteryLevel, COLORED);
             batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
-            Epd_Display_Partial(&epd, Paint_GetImage(&right_paint), 350, 10, 380, 32);
+            Epd_Display_Partial(&epd, Paint_GetImage(&right_paint), 360, 0, 400, 28);
         }
         updateBattery++;
 
-        HAL_Delay(100); // Delay for 1 second
-
-        /* USER CODE END WHILE */
-
-        /* USER CODE BEGIN 3 */
+        updateCounter++;
+        HAL_Delay(500); // Delay for 500 ms
     }
+
     /* USER CODE END 3 */
 }
 
@@ -583,6 +596,38 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void UpdateIcons(Epd *epd, Paint icon_paints[], int selected_icon, int blink)
+{
+    // Array of icon positions
+    int icon_positions[8][2] = {
+        {5, 200}, {55, 200}, {105, 200}, {155, 200}, {205, 200}, {255, 200}, {305, 200}, {355, 200}};
+
+    // Array of icons
+    const unsigned char *icons[8] = {
+        icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
+
+    // Update each icon individually
+    for (int i = 0; i < 8; i++)
+    {
+        Paint_Clear(&icon_paints[i], UNCOLORED);
+
+        if (i == selected_icon && blink)
+        {
+            static int toggle = 0;
+            toggle = !toggle; // Toggle blink state
+            if (toggle)
+            {
+                Paint_DrawBitmap(&icon_paints[i], icons[i], 0, 0, 48, 48, COLORED);
+            }
+        }
+        else
+        {
+            Paint_DrawBitmap(&icon_paints[i], icons[i], 0, 0, 48, 48, COLORED);
+        }
+
+        Epd_Display_Partial(epd, Paint_GetImage(&icon_paints[i]), icon_positions[i][0], icon_positions[i][1], icon_positions[i][0] + 48, icon_positions[i][1] + 48);
+    }
+}
 
 /* USER CODE END 4 */
 

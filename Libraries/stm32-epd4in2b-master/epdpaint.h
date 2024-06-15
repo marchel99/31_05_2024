@@ -49,10 +49,6 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
 void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, int height, int selected);
 
 
-void UpdateIcons(Paint *paint, int selected_icon);
-
-
-
 
 
 

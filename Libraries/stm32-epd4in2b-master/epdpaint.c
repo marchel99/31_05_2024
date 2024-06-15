@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "imagedata.h"
+#include "epd4in2b.h"
 
 
 
@@ -281,31 +282,25 @@ unsigned char* Paint_GetImage(Paint* paint) {
     return paint->image;
 }
 
-
 void DrawBattery(Paint *paint, int x, int y, int width, int height, int colored) {
-    // Główny prostokąt baterii z marginesem dolnym
-    Paint_DrawRectangle(paint, x, y, x + width, y + height - 1, colored);
-
+    // Główny prostokąt baterii
+    Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
     // Mały prostokąt jako złącze baterii
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
 }
-void DrawBatteryLevel(Paint* paint, int x, int y, int width, int height, int level, int colored) {
-    // Szerokość jednego poziomu naładowania
-    int levelWidth = (width - 4) / 3; // -4 to marginesy
-    int gap = 2; // Przerwa między paskami
+
+void DrawBatteryLevel(Paint *paint, int x, int y, int width, int height, int level, int colored) {
+    // Wysokość jednego poziomu naładowania
+    int levelHeight = (height - 4) / 3; // -4 to marginesy
 
     for (int i = 0; i < level; i++) {
         // Rysuj poziomy naładowania
-        int levelX = x + 2 + i * (levelWidth + gap); // +2 to lewy margines
-        Paint_DrawFilledRectangle(paint, levelX, y + 2, levelX + levelWidth, y + height - 2, colored); // +2 i -2 to marginesy
+        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
+        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
     }
 }
-
-
-
-
 
 
 
@@ -337,13 +332,6 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
 
 
 
-
-
-
-
-
-
-
 void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, int height, int selected) {
     if (selected) {
         // Rysuj migający prostokąt wokół ikony
@@ -352,19 +340,5 @@ void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, 
     Paint_DrawBitmap(paint, icon, x, y, width, height, COLORED);
 }
 
-void UpdateIcons(Paint *paint, int selected_icon) {
-    Paint_Clear(paint, UNCOLORED);
-    int icons_y = 200;
-    int icon_size = 48;
-    int spacing = 50;
-    
-    // Tablica z ikonami
-    const unsigned char *icons[] = {icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
-    int num_icons = sizeof(icons) / sizeof(icons[0]);
-    
-    for (int i = 0; i < num_icons; i++) {
-        int x = 5 + i * spacing;
-        int selected = (i == selected_icon);
-        DrawIcon(paint, icons[i], x, icons_y, icon_size, icon_size, selected);
-    }
-}
+
+

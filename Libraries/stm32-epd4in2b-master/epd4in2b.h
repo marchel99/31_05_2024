@@ -67,4 +67,5 @@ void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, unsigned int x1
 
 
 
+
 #endif /* EPD4IN2B_H */
