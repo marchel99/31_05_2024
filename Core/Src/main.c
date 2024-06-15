@@ -210,17 +210,22 @@ unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego paska
 
 
 
-
+int impulse_counter = 0; // Licznik impulsów
 
 
   /* USER CODE BEGIN WHILE */
   while (1)
   {
   
+ // Zwiększenie licznika impulsów
+    impulse_counter++;
 
-Paint_Clear(&paint, UNCOLORED);
+    if (impulse_counter >= 60)
+    {
+        // Pełne odświeżanie wyświetlacza co 60 impulsów
 
         // Aktualizacja licznika
+        Paint_Clear(&paint, UNCOLORED);
         char buffer[100];
         snprintf(buffer, sizeof(buffer), "%d", counter++);
         Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
@@ -237,17 +242,38 @@ Paint_Clear(&paint, UNCOLORED);
         }
         updateBattery++;
 
-        // Wyświetlanie paska
+        // Wyświetlanie górnego menu
+        Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+        impulse_counter = 0; // Reset licznika impulsów
+    }
+    else
+    {
+        // Aktualizacja licznika
+        Paint_Clear(&paint, UNCOLORED);
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "%d", counter++);
+        Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
+
+        // Dodanie komunikatu "SD: Error" na środku
+        Paint_DrawStringAt(&paint, 150, 5, "SD: Error", &Font20, COLORED);
+
+        // Aktualizacja baterii co 1 sekundy
+        if (updateBattery % 1 == 0)
+        {
+            DrawBattery(&paint, 350, 2, 32, 24, COLORED);
+            DrawBatteryLevel(&paint, 350, 2, 30, 24, batteryLevel, COLORED);
+            batteryLevel = (batteryLevel + 1) % 4;
+        }
+        updateBattery++;
+
+        // Wyświetlanie górnego menu
         Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 0, 400, 28);
+    }
 
-        HAL_Delay(50); // Opóźnienie 50 ms
-
-
-
-
-
-
+    HAL_Delay(300); // Opóźnienie 300 ms
     /* USER CODE END WHILE */
+
 
 
 
