@@ -88,19 +88,22 @@ int getIconIndex(uint32_t encoderValue);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-
-
 int getIconIndex(uint32_t encoderValue) {
-    static int lastEncoderValue = 0; // Poprzednia wartość enkodera
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
     static int iconIndex = 1; // Zakładam, że startujesz od ikony 1
 
+    // Oblicz różnicę wartości enkodera
     int delta = (int)(encoderValue / 2) - lastEncoderValue;
 
-    // Aktualizacja wartości enkodera
+    // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+    if (abs(delta) > 4) { // Ignorowanie dużych zmian (np. teleportacji)
+        lastEncoderValue = (int)(encoderValue / 2); // Mimo to aktualizujemy lastEncoderValue
+        return iconIndex;
+    }
+
     lastEncoderValue = (int)(encoderValue / 2);
 
-    // Obsługa zmian wartości
+    // Obsługa ruchów
     if (delta > 0) { // Ruch w prawo
         iconIndex += delta;
         if (iconIndex > 8) {
@@ -115,8 +118,6 @@ int getIconIndex(uint32_t encoderValue) {
 
     return iconIndex;
 }
-
-
 
 // POD PRINTF
 int __io_putchar(int ch)
