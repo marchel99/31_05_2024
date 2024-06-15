@@ -281,16 +281,15 @@ unsigned char* Paint_GetImage(Paint* paint) {
 }
 
 
-void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored) {
-    // Główny prostokąt baterii
-    Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
+void DrawBattery(Paint *paint, int x, int y, int width, int height, int colored) {
+    // Główny prostokąt baterii z marginesem dolnym
+    Paint_DrawRectangle(paint, x, y, x + width, y + height - 1, colored);
 
     // Mały prostokąt jako złącze baterii
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
 }
-
 void DrawBatteryLevel(Paint* paint, int x, int y, int width, int height, int level, int colored) {
     // Szerokość jednego poziomu naładowania
     int levelWidth = (width - 4) / 3; // -4 to marginesy

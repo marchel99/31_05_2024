@@ -57,7 +57,7 @@ void Epd_TurnOnDisplay(Epd *epd);
 
 void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
 
-
+void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end);
 
 
 

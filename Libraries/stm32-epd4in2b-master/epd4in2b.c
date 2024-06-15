@@ -415,6 +415,126 @@ void Epd_TurnOnDisplay_Partial(Epd *epd)
 }
 
 
+
+
+
+void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end)
+{
+    unsigned int i, width1, width2;
+    unsigned int image1_counter, image2_counter;
+
+    // Obliczenia dla pierwszego obszaru
+    if((x1_start % 8 + x1_end % 8 == 8 && x1_start % 8 > x1_end % 8) || x1_start % 8 + x1_end % 8 == 0 || (x1_end - x1_start) % 8 == 0) {
+        x1_start = x1_start / 8;
+        x1_end = x1_end / 8;
+    } else {
+        x1_start = x1_start / 8;
+        x1_end = x1_end % 8 == 0 ? x1_end / 8 : x1_end / 8 + 1;
+    }
+
+    width1 = x1_end - x1_start;
+    image1_counter = width1 * (y1_end - y1_start);
+
+    x1_end -= 1;
+    y1_end -= 1;
+
+    // Obliczenia dla drugiego obszaru
+    if((x2_start % 8 + x2_end % 8 == 8 && x2_start % 8 > x2_end % 8) || x2_start % 8 + x2_end % 8 == 0 || (x2_end - x2_start) % 8 == 0) {
+        x2_start = x2_start / 8;
+        x2_end = x2_end / 8;
+    } else {
+        x2_start = x2_start / 8;
+        x2_end = x2_end % 8 == 0 ? x2_end / 8 : x2_end / 8 + 1;
+    }
+
+    width2 = x2_end - x2_start;
+    image2_counter = width2 * (y2_end - y2_start);
+
+    x2_end -= 1;
+    y2_end -= 1;
+
+    // Reset wyświetlacza
+    Epd_Reset(epd);
+
+    // Konfiguracja wyświetlacza dla pierwszego obszaru
+    Epd_SendCommand(epd, 0x3C);
+    Epd_SendData(epd, 0x80);
+
+    Epd_SendCommand(epd, 0x21);
+    Epd_SendData(epd, 0x00);
+    Epd_SendData(epd, 0x00);
+
+    Epd_SendCommand(epd, 0x3C);
+    Epd_SendData(epd, 0x80);
+
+    Epd_SendCommand(epd, 0x44);
+    Epd_SendData(epd, x1_start & 0xff);
+    Epd_SendData(epd, x1_end & 0xff);
+
+    Epd_SendCommand(epd, 0x45);
+    Epd_SendData(epd, y1_start & 0xff);
+    Epd_SendData(epd, (y1_start >> 8) & 0x01);
+    Epd_SendData(epd, y1_end & 0xff);
+    Epd_SendData(epd, (y1_end >> 8) & 0x01);
+
+    Epd_SendCommand(epd, 0x4E);
+    Epd_SendData(epd, x1_start & 0xff);
+
+    Epd_SendCommand(epd, 0x4F);
+    Epd_SendData(epd, y1_start & 0xff);
+    Epd_SendData(epd, (y1_start >> 8) & 0x01);
+
+    Epd_SendCommand(epd, 0x24);
+    for (i = 0; i < image1_counter; i++) {
+        Epd_SendData(epd, image1[i]);
+    }
+
+    // Konfiguracja wyświetlacza dla drugiego obszaru
+    Epd_SendCommand(epd, 0x44);
+    Epd_SendData(epd, x2_start & 0xff);
+    Epd_SendData(epd, x2_end & 0xff);
+
+    Epd_SendCommand(epd, 0x45);
+    Epd_SendData(epd, y2_start & 0xff);
+    Epd_SendData(epd, (y2_start >> 8) & 0x01);
+    Epd_SendData(epd, y2_end & 0xff);
+    Epd_SendData(epd, (y2_end >> 8) & 0x01);
+
+    Epd_SendCommand(epd, 0x4E);
+    Epd_SendData(epd, x2_start & 0xff);
+
+    Epd_SendCommand(epd, 0x4F);
+    Epd_SendData(epd, y2_start & 0xff);
+    Epd_SendData(epd, (y2_start >> 8) & 0x01);
+
+    Epd_SendCommand(epd, 0x24);
+    for (i = 0; i < image2_counter; i++) {
+        Epd_SendData(epd, image2[i]);
+    }
+
+    Epd_TurnOnDisplay_Partial(epd);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void Epd_DisplayFull(Epd *epd, const unsigned char *image) {
     unsigned int width = (epd->width % 8 == 0) ? (epd->width / 8) : (epd->width / 8 + 1);
     unsigned int height = epd->height;
