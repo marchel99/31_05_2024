@@ -56,7 +56,9 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+int counter = 1;
+int batteryLevel = 0; // Przykładowy poziom naładowania (0-3)
+int updateBattery = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,22 +138,9 @@ HAL_TIM_Base_Start_IT(&htim3);  // Uruchom TIM3 w trybie przerwań
 
     Epd epd;
     Paint paint;
-    Paint left_paint;
-    Paint right_paint;
-    Paint icons_paint;
-    unsigned char left_image[40 * 28 / 8] = {0};  // Bufor dla licznika
-    unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
+ 
+unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego paska
 
-    unsigned char icons_image[400 * 48 / 8] = {0}; // Bufor dla ikon
-
-    unsigned char icon_buffers[8][48 * 48 / 8];
-
-
-    Paint icon_paints[8];
-    const unsigned char *icons[8] = {
-        icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
-    int icon_positions[8][2] = {
-        {5, 200}, {55, 200}, {105, 200}, {155, 200}, {205, 200}, {255, 200}, {305, 200}, {355, 200}};
 
     if (Epd_Init(&epd) != 0)
     {
@@ -160,18 +149,26 @@ HAL_TIM_Base_Start_IT(&htim3);  // Uruchom TIM3 w trybie przerwań
     }
     Epd_Clear(&epd);
 
-    // Inicjalizacja obrazów
-    Paint_Init(&left_paint, left_image, 40, 28);
-    Paint_Init(&right_paint, right_image, 40, 28);
-    Paint_Init(&icons_paint, icons_image, 400, 48);
+
+
+
+
+      // Inicjalizacja obrazu
+    Paint_Init(&paint, top_menu, 400, 28);
+    Paint_Clear(&paint, UNCOLORED);
+
+
 
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
     Paint_Init(&paint, full_image, 400, 300);
     Paint_Clear(&paint, UNCOLORED);
 
+
+
+
     // interfejs
-    Paint_DrawStringAt(&paint, 85, 10, "SD card", &Font16, COLORED);
+    //Paint_DrawStringAt(&paint, 85, 10, "SD card", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
     Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
     Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
@@ -198,7 +195,7 @@ HAL_TIM_Base_Start_IT(&htim3);  // Uruchom TIM3 w trybie przerwań
     Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
+    Paint_DrawBitmap(&paint, icon_settings,355, 200, 48, 48, COLORED);
 
     Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
@@ -207,29 +204,68 @@ HAL_TIM_Base_Start_IT(&htim3);  // Uruchom TIM3 w trybie przerwań
   /* USER CODE END 2 */
 
   /* Infinite loop */
+
+
+
+
+
+
+
+
+
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+  
+
+Paint_Clear(&paint, UNCOLORED);
+
+        // Aktualizacja licznika
+        char buffer[100];
+        snprintf(buffer, sizeof(buffer), "%d", counter++);
+        Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
+
+        // Dodanie komunikatu "SD: Error" na środku
+        Paint_DrawStringAt(&paint, 150, 5, "SD: Error", &Font20, COLORED);
+
+        // Aktualizacja baterii co 1 sekundy
+        if (updateBattery % 1 == 0)
+        {
+            DrawBattery(&paint, 350, 2, 32, 24, COLORED);
+            DrawBatteryLevel(&paint, 350, 2, 30, 24, batteryLevel, COLORED);
+            batteryLevel = (batteryLevel + 1) % 4;
+        }
+        updateBattery++;
+
+        // Wyświetlanie paska
+        Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 0, 400, 28);
+
+        HAL_Delay(50); // Opóźnienie 50 ms
+
+
+
+
+
+
     /* USER CODE END WHILE */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /* USER CODE BEGIN 3 */
   }
 
-
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim->Instance == TIM3)
-    {
-        // Kod do wykonania w przerwaniu TIM3
-        no_activity_counter++;
-        if (no_activity_counter >= 4) // Brak aktywności przez 2 sekundy (4 * 500 ms)
-        {
-            blink = 0;
-            UpdateIcons(&epd, icon_paints, -1, blink); // Wyświetl wszystkie ikony bez migotania
-        }
-    }
-}
 
 
 
@@ -625,38 +661,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void UpdateIcons(Epd *epd, Paint icon_paints[], int selected_icon, int blink)
-{
-    // Array of icon positions
-    int icon_positions[8][2] = {
-        {5, 200}, {55, 200}, {105, 200}, {155, 200}, {205, 200}, {255, 200}, {305, 200}, {355, 200}};
-
-    // Array of icons
-    const unsigned char *icons[8] = {
-        icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
-
-    // Update each icon individually
-    for (int i = 0; i < 8; i++)
-    {
-        Paint_Clear(&icon_paints[i], UNCOLORED);
-
-        if (i == selected_icon && blink)
-        {
-            static int toggle = 0;
-            toggle = !toggle; // Toggle blink state
-            if (toggle)
-            {
-                Paint_DrawBitmap(&icon_paints[i], icons[i], 0, 0, 48, 48, COLORED);
-            }
-        }
-        else
-        {
-            Paint_DrawBitmap(&icon_paints[i], icons[i], 0, 0, 48, 48, COLORED);
-        }
-
-        Epd_Display_Partial(epd, Paint_GetImage(&icon_paints[i]), icon_positions[i][0], icon_positions[i][1], icon_positions[i][0] + 48, icon_positions[i][1] + 48);
-    }
-}
 
 /* USER CODE END 4 */
 

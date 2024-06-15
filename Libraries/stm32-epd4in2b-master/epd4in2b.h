@@ -62,8 +62,10 @@ void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, unsigned int x1
 
 
 
+void Epd_Display_Partial_Fast(Epd *epd, const unsigned char* image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
 
 
+void Epd_TurnOnDisplay_Partial_Fast(Epd *epd);
 
 
 
