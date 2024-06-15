@@ -176,7 +176,13 @@ int main(void)
 
     HAL_TIM_Base_Start_IT(&htim3); // Uruchom TIM3 w trybie przerwań
 
-    unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego paska
+
+
+
+    unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego gornego  paska
+
+
+
 
     if (Epd_Init(&epd) != 0)
     {
@@ -189,10 +195,14 @@ int main(void)
     Paint_Init(&paint_top, top_menu, 400, 28);
     Paint_Clear(&paint_top, UNCOLORED);
 
+
+
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
     Paint_Init(&paint, full_image, 400, 300);
-    Paint_Clear(&paint, UNCOLORED);
+    Paint_Clear(&
+    
+    paint, UNCOLORED);
 
     // interfejs
     Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
@@ -211,7 +221,7 @@ int main(void)
     Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-   // Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+
 Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
 
 
@@ -230,6 +240,9 @@ Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
     Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+
+
+
 
   /* USER CODE END 2 */
 

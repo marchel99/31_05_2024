@@ -352,3 +352,67 @@ void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, 
 
 
 
+
+
+
+void DrawBottomPanel(Paint* paint, int iconIndex) {
+    const char* menuText;
+
+    // Wybór napisu w zależności od wartości iconIndex
+    switch (iconIndex) {
+        case 1:
+            menuText = "Menu 1";
+            break;
+        case 2:
+            menuText = "Menu 2";
+            break;
+        case 3:
+            menuText = "Menu 3";
+            break;
+        case 4:
+            menuText = "Menu 4";
+            break;
+        case 5:
+            menuText = "Menu 5";
+            break;
+        case 6:
+            menuText = "Menu 6";
+            break;
+        case 7:
+            menuText = "Menu 7";
+            break;
+        case 8:
+            menuText = "Menu 8";
+            break;
+        default:
+            menuText = "Unknown Menu";
+            break;
+    }
+
+    // Obliczanie pozycji X, aby tekst był wyśrodkowany
+    int textLength = strlen(menuText);
+    int textWidth = textLength * Font16.Width; // Zakładając, że używasz Font16
+    int centeredX = (400 - textWidth) / 2;
+
+    // Wyświetlanie napisu na środku ekranu
+    Paint_DrawStringAt(paint, centeredX, 275, menuText, &Font16, COLORED);
+}
+
+
+
+void DrawTopPanel(Paint* paint_top, int counter, int batteryLevel, uint32_t encoderValue, int iconIndex) {
+    char buffer_top[100];
+    
+    // Wyświetlanie informacji o ikonie i wartości enkodera
+    snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%lu", iconIndex, encoderValue);
+    Paint_DrawStringAt(paint_top, 150, 5, buffer_top, &Font20, COLORED);
+
+    // Wyświetlanie licznika
+    snprintf(buffer_top, sizeof(buffer_top), "%d", counter);
+    Paint_DrawStringAt(paint_top, 10, 5, buffer_top, &Font20, COLORED);
+
+    // Rysowanie poziomu baterii
+    DrawBattery(paint_top, 350, 2, 32, 24, COLORED);
+    DrawBatteryLevel(paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
+}
+

@@ -53,8 +53,8 @@ void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, 
 
 void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth);
 
-
-
+void DrawTopPanel(Paint* paint_top, int counter, int batteryLevel, uint32_t encoderValue, int iconIndex);
+void DrawBottomPanel(Paint* paint, int iconIndex);
 
 
 void Paint_SetWidth(Paint* paint, int width);
