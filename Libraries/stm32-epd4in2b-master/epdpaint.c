@@ -290,19 +290,17 @@ void DrawBattery(Paint *paint, int x, int y, int width, int height, int colored)
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
 }
-
 void DrawBatteryLevel(Paint *paint, int x, int y, int width, int height, int level, int colored) {
-    // Wysokość jednego poziomu naładowania
-    int levelHeight = (height - 4) / 3; // -4 to marginesy
+    // Szerokość jednego poziomu naładowania
+    int levelWidth = (width - 4) / 3; // -4 to marginesy
+    int gap = 2; // Odstęp między poziomami naładowania
 
     for (int i = 0; i < level; i++) {
         // Rysuj poziomy naładowania
-        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
-        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
+        int levelX = x + 2 + i * (levelWidth + gap); // Pozycja X z uwzględnieniem odstępów
+        Paint_DrawFilledRectangle(paint, levelX, y + 2, levelX + levelWidth, y + height - 2, colored); // -2 to górny i dolny margines
     }
 }
-
-
 
 
 
