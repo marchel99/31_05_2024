@@ -93,11 +93,15 @@ int main(void)
     /* USER CODE BEGIN 1 */
     Epd epd;
     Paint paint;
+unsigned char left_image[40 * 28 / 8] = {0}; // Bufor dla licznika
+unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
 
-    unsigned char left_image[40 * 28 / 8];        // Bufor dla licznika
-    unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
     int counter = 1;
     int batteryLevel = 2;
+
+
+
+
     /* USER CODE END 1 */
 
     /* MCU Configuration--------------------------------------------------------*/
@@ -131,7 +135,19 @@ int main(void)
     }
     Epd_Clear(&epd);
 
-    Paint_Clear(&paint, UNCOLORED);
+
+
+// Ustawienie obrazu dla licznika
+Paint_Init(&paint, left_image, 40, 28);
+Paint_Clear(&paint, UNCOLORED);
+
+// Ustawienie obrazu dla baterii
+Paint_Init(&paint, right_image, 40, 28);
+Paint_Clear(&paint, UNCOLORED);
+
+
+
+
 
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
@@ -192,26 +208,34 @@ int main(void)
     // DrawBattery(&paint, 350, 10, 30, 15, batteryLevel, COLORED);
     while (1)
     {
-        // Rysowanie licznika w lewym buforze
-        Paint_Init(&paint, left_image, 40, 28);
-        Paint_Clear(&paint, UNCOLORED);
-        char buffer[25];
-        snprintf(buffer, sizeof(buffer), "%d", counter++);
-        Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
+           // Aktualizacja licznika
+    Paint_Init(&paint, left_image, 40, 28);
+    Paint_Clear(&paint, UNCOLORED);
+    char buffer[15]; // Zwiększ rozmiar bufora
+    snprintf(buffer, sizeof(buffer), "%d", counter++);
+    Paint_DrawStringAt(&paint, 10, 5, buffer, &Font20, COLORED);
 
-        Epd_Display_Partial(&epd, Paint_GetImage(&paint), 0, 0, 40, 28);
+    // Aktualizacja baterii
+    Paint_Init(&paint, right_image, 40, 28);
+    Paint_Clear(&paint, UNCOLORED);
+    DrawBattery(&paint, 0, 0, 30, 15, COLORED); // Rysuj obrys baterii
+    DrawBatteryLevel(&paint, 0, 0, 30, 15, batteryLevel, COLORED);
+    batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
 
-        // Rysowanie baterii w prawym buforze
-        Paint_Init(&paint, right_image, 40, 28);
-        Paint_Clear(&paint, UNCOLORED);
-        DrawBattery(&paint, 5, 5, 30, 15, batteryLevel, COLORED);
-        batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
+    // Wyświetlenie aktualizacji
+    Epd_Display_Partial(&epd, left_image, 0, 0, 40, 28);
+    Epd_Display_Partial(&epd, right_image, 350, 10, 380, 25);
 
-        Epd_Display_Partial(&epd, Paint_GetImage(&paint), 350, 0, 390, 28);
+   
 
-        HAL_Delay(1000); // Delay for 1 second
 
-        /* USER CODE END 2 */
+    HAL_Delay(150); // Delay for 1 second
+
+
+
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
 }

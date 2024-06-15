@@ -281,7 +281,7 @@ unsigned char* Paint_GetImage(Paint* paint) {
 }
 
 
-void DrawBattery(Paint* paint, int x, int y, int width, int height, int level, int colored) {
+void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored) {
     // Główny prostokąt baterii
     Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
 
@@ -289,14 +289,17 @@ void DrawBattery(Paint* paint, int x, int y, int width, int height, int level, i
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
+}
 
-    // Wysokość jednego poziomu naładowania
-    int levelHeight = (height - 4) / 3; // -4 to marginesy
+void DrawBatteryLevel(Paint* paint, int x, int y, int width, int height, int level, int colored) {
+    // Szerokość jednego poziomu naładowania
+    int levelWidth = (width - 4) / 3; // -4 to marginesy
+    int gap = 2; // Przerwa między paskami
 
     for (int i = 0; i < level; i++) {
         // Rysuj poziomy naładowania
-        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
-        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
+        int levelX = x + 2 + i * (levelWidth + gap); // +2 to lewy margines
+        Paint_DrawFilledRectangle(paint, levelX, y + 2, levelX + levelWidth, y + height - 2, colored); // +2 i -2 to marginesy
     }
 }
 
@@ -304,16 +307,6 @@ void DrawBattery(Paint* paint, int x, int y, int width, int height, int level, i
 
 
 
-void LoadBattery(Paint* paint, int x, int y, int width, int height, int level, int colored) {
-    // Wysokość jednego poziomu naładowania
-    int levelHeight = (height - 4) / 3; // -4 to marginesy
-
-    for (int i = 0; i < level; i++) {
-        // Rysuj poziomy naładowania
-        int levelY = y + height - 2 - (i + 1) * levelHeight; // -2 to dolny margines
-        Paint_DrawFilledRectangle(paint, x + 2, levelY, x + width - 2, levelY + levelHeight - 1, colored); // -1 to górny margines
-    }
-}
 
 
 

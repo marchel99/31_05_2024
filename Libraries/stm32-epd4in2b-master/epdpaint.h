@@ -37,9 +37,9 @@ void Paint_DrawFilledCircle(Paint* paint, int x, int y, int radius, int colored)
 
 void Paint_DrawCircleQuarter(Paint* paint, int x, int y, int r, int quarter, int colored);
 
+void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored);
+void DrawBatteryLevel(Paint* paint, int x, int y, int width, int height, int level, int colored);
 
-void LoadBattery(Paint* paint, int x, int y, int width, int height, int level, int colored);
-void DrawBattery(Paint * paint, int x, int y, int width, int height, int level, int colored);
 
 void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, int width, int height, int colored);
 
