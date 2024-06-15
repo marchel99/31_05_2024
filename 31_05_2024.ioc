@@ -27,6 +27,7 @@ Dma.SPI1_TX.0.PeriphInc=DMA_PINC_DISABLE
 Dma.SPI1_TX.0.Priority=DMA_PRIORITY_VERY_HIGH
 Dma.SPI1_TX.0.RequestParameters=Instance,Direction,PeriphInc,MemInc,PeriphDataAlignment,MemDataAlignment,Mode,Priority
 File.Version=6
+GPIO.groupedBy=Group By Peripherals
 I2C1.IPParameters=Timing
 I2C1.Timing=0x10909CEC
 KeepUserPlacement=false
