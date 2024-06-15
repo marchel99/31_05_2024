@@ -51,6 +51,8 @@ void EpdIf_IfInit(void);
 
 void Epd_Display(Epd *epd, const unsigned char *image);
 void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
+void Epd_Display_Partial_DMA(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end);
+
 void Epd_TurnOnDisplay_Partial(Epd *epd);
 void Epd_TurnOnDisplay(Epd *epd);
 

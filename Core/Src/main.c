@@ -1,5 +1,3 @@
-
-
 /* USER CODE BEGIN Header */
 /**
  ******************************************************************************
@@ -24,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
 #include "epd4in2b.h"
 #include "epdpaint.h"
 #include "fonts.h"
@@ -46,11 +45,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+uint32_t lastEncoderValue = 0;
+int iconIndex = 1; // Początkowa ikona
+
 ADC_HandleTypeDef hadc1;
 
 I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -58,14 +61,23 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+
 int counter = 1;
-int batteryLevel = 0; // Przykładowy poziom naładowania (0-3)
+int batteryLevel = 0; 
 int updateBattery = 0;
+
+
+Epd epd;
+Paint paint;
+Paint paint_top;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
@@ -73,12 +85,24 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-void UpdateIcons(Epd *epd, Paint icon_paints[], int selected_icon, int blink);
+int getIconIndex(uint32_t encoderValue);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int getIconIndex(uint32_t encoderValue) {
+    uint32_t normalizedValue = encoderValue / 2;
+    return (normalizedValue % 8) + 1;
+}
+
+
+
+
+
+
+
+
 
 // POD PRINTF
 int __io_putchar(int ch)
@@ -124,6 +148,7 @@ int main(void)
 
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
+    MX_DMA_Init();
     MX_I2C1_Init();
     MX_USART2_UART_Init();
     MX_ADC1_Init();
@@ -135,10 +160,6 @@ int main(void)
     /* E-paper display setup */
 
     HAL_TIM_Base_Start_IT(&htim3); // Uruchom TIM3 w trybie przerwań
-
-    Epd epd;
-    Paint paint;
-    Paint paint_top;
 
     unsigned char top_menu[400 * 28 / 8] = {0}; // Bufor dla całego paska
 
@@ -152,8 +173,6 @@ int main(void)
     // Inicjalizacja obrazu dla górnego paska
     Paint_Init(&paint_top, top_menu, 400, 28);
     Paint_Clear(&paint_top, UNCOLORED);
-
-
 
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
@@ -196,96 +215,59 @@ int main(void)
     /* USER CODE END 2 */
 
     /* Infinite loop */
-
-    int impulse_counter = 0; // Licznik impulsów
-
     /* USER CODE BEGIN WHILE */
+    int impulse_counter = 0;
+
     while (1)
     {
-      
 
+        impulse_counter++;
 
- impulse_counter++;
-
-        if (impulse_counter >= 60)
+        if (impulse_counter >= 6)
         {
             // Pełne odświeżanie wyświetlacza co 6 impulsów
-
-            // Czyszczenie ekranu
-            Paint_Clear(&paint, UNCOLORED);
             Paint_Clear(&paint_top, UNCOLORED);
 
-            // Aktualizacja górnego paska
+            uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+            int iconIndex = getIconIndex(encoderValue);
+
             char buffer_top[100];
+            snprintf(buffer_top, sizeof(buffer_top), "Ikona: %d", iconIndex);
+            Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
+
             snprintf(buffer_top, sizeof(buffer_top), "%d", counter++);
             Paint_DrawStringAt(&paint_top, 10, 5, buffer_top, &Font20, COLORED);
-            Paint_DrawStringAt(&paint_top, 150, 5, "SD: Error", &Font20, COLORED);
 
-            // Aktualizacja baterii na górnym pasku
             DrawBattery(&paint_top, 350, 2, 32, 24, COLORED);
             DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
             batteryLevel = (batteryLevel + 1) % 4;
 
-            // Kopiowanie górnego paska do pełnego obrazu
-            memcpy(full_image, top_menu, sizeof(top_menu));
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
 
-            // Rysowanie interfejsu na pełnym obrazie
-            Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
-            Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
-            Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
-
-            Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
-
-            Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-            Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
-
-            Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-            Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
-
-            Epd_DisplayFull(&epd, Paint_GetImage(&paint));
-
-            impulse_counter = 0; // Reset licznika impulsów
+            impulse_counter = 0;
         }
         else
         {
-            // Aktualizacja górnego paska bez pełnego odświeżania
             Paint_Clear(&paint_top, UNCOLORED);
 
-            // Aktualizacja licznika
+            uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+            int iconIndex = getIconIndex(encoderValue);
+
             char buffer_top[100];
+            snprintf(buffer_top, sizeof(buffer_top), "Ikona: %d", iconIndex);
+            Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
+
             snprintf(buffer_top, sizeof(buffer_top), "%d", counter++);
             Paint_DrawStringAt(&paint_top, 10, 5, buffer_top, &Font20, COLORED);
-            Paint_DrawStringAt(&paint_top, 150, 5, "SD: Error", &Font20, COLORED);
 
-            // Aktualizacja baterii na górnym pasku
             DrawBattery(&paint_top, 350, 2, 32, 24, COLORED);
             DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
             batteryLevel = (batteryLevel + 1) % 4;
 
-            // Wyświetlanie górnego paska
-            Epd_Display_Partial(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
         }
 
-        HAL_Delay(300); // Opóźnienie 300 ms
-
-
-
-
-
-
+        HAL_Delay(30); // Opóźnienie 30 ms
 
         /* USER CODE END WHILE */
 
@@ -632,6 +614,21 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+ * Enable DMA controller clock
+ */
+static void MX_DMA_Init(void)
+{
+
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA interrupt init */
+    /* DMA1_Channel3_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+}
+
+/**
  * @brief GPIO Initialization Function
  * @param None
  * @retval None
@@ -663,6 +660,12 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
+
+    /*Configure GPIO pin : EN_SW_Pin */
+    GPIO_InitStruct.Pin = EN_SW_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(EN_SW_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN MX_GPIO_Init_2 */
     /* USER CODE END MX_GPIO_Init_2 */

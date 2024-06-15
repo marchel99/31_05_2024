@@ -35,12 +35,6 @@ void DelayMs(uint32_t delay)
     HAL_Delay(delay);
 }
 
-
-
-
-
-
-
 void EpdIf_IfInit(void)
 {
     // GPIO initialization for EPD
@@ -67,12 +61,9 @@ void EpdIf_IfInit(void)
     HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
 }
 
+int Epd_Init(Epd *epd)
+{
 
-
-
-
-int Epd_Init(Epd *epd) {
-    printf("Hello from the Epd_Init function!\n");
     epd->width = EPD_WIDTH;
     epd->height = EPD_HEIGHT;
     epd->reset_port = RST_PORT;
@@ -85,7 +76,7 @@ int Epd_Init(Epd *epd) {
     epd->busy_pin = BUSY_PIN;
 
     EpdIf_IfInit();
-    
+
     Epd_Reset(epd);
     Epd_ReadBusy(epd);
 
@@ -123,16 +114,6 @@ int Epd_Init(Epd *epd) {
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
 int Epd_Init_new(Epd *epd)
 {
     Epd_Reset(epd);
@@ -162,15 +143,6 @@ int Epd_Init_new(Epd *epd)
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
 int Epd_Init_old(Epd *epd)
 {
     Epd_Reset(epd);
@@ -181,14 +153,13 @@ int Epd_Init_old(Epd *epd)
     return 0;
 }
 
-
-
-
 void Epd_SendCommand(Epd *epd, unsigned char command)
 {
     DigitalWrite(epd->dc_port, epd->dc_pin, GPIO_PIN_RESET);
     SpiTransfer(command);
 }
+
+
 
 void Epd_SendData(Epd *epd, unsigned char data)
 {
@@ -196,8 +167,26 @@ void Epd_SendData(Epd *epd, unsigned char data)
     SpiTransfer(data);
 }
 
-void Epd_ReadBusy(Epd *epd) {
-    while (DigitalRead(epd->busy_port, epd->busy_pin) == GPIO_PIN_SET) {
+
+void Epd_SendData_DMA(Epd *epd, unsigned char *data, uint16_t size)
+{
+    DigitalWrite(epd->dc_port, epd->dc_pin, GPIO_PIN_SET);
+
+    // Rozpocznij transmisję DMA
+    HAL_SPI_Transmit_DMA(&hspi1, data, size);
+
+    // Czekaj na zakończenie transmisji
+    while (HAL_SPI_GetState(&hspi1) != HAL_SPI_STATE_READY)
+    {
+    }
+}
+
+
+
+void Epd_ReadBusy(Epd *epd)
+{
+    while (DigitalRead(epd->busy_port, epd->busy_pin) == GPIO_PIN_SET)
+    {
         DelayMs(100);
     }
 }
@@ -212,24 +201,13 @@ void Epd_Reset(Epd *epd)
     DelayMs(200);
 }
 
-
-
-
-
-
-
-
 void Epd_TurnOnDisplay(Epd *epd)
 {
-    Epd_SendCommand(epd,0x22);
-    Epd_SendData(epd,0xF7);
-    Epd_SendCommand(epd,0x20);
+    Epd_SendCommand(epd, 0x22);
+    Epd_SendData(epd, 0xF7);
+    Epd_SendCommand(epd, 0x20);
     Epd_ReadBusy(epd);
 }
-
-
-
-
 
 void Epd_DisplayFrame(Epd *epd)
 {
@@ -315,39 +293,43 @@ void Epd_Sleep(Epd *epd)
     }
 }
 
-
-
-
-void Epd_Display(Epd *epd, const UBYTE *image) {
+void Epd_Display(Epd *epd, const UBYTE *image)
+{
     UWORD Width, Height;
     Width = (epd->width % 8 == 0) ? (epd->width / 8) : (epd->width / 8 + 1);
     Height = epd->height;
 
     Epd_SendCommand(epd, 0x24);
-    for (UWORD j = 0; j < Height; j++) {
-        for (UWORD i = 0; i < Width; i++) {
+    for (UWORD j = 0; j < Height; j++)
+    {
+        for (UWORD i = 0; i < Width; i++)
+        {
             Epd_SendData(epd, image[i + j * Width]);
         }
     }
     Epd_SendCommand(epd, 0x26);
-    for (UWORD j = 0; j < Height; j++) {
-        for (UWORD i = 0; i < Width; i++) {
+    for (UWORD j = 0; j < Height; j++)
+    {
+        for (UWORD i = 0; i < Width; i++)
+        {
             Epd_SendData(epd, image[i + j * Width]);
         }
     }
     Epd_TurnOnDisplay(epd);
 }
 
-
-void Epd_Display_Partial_Fast(Epd *epd, const unsigned char* image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
+void Epd_Display_Partial_Fast(Epd *epd, const unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
 {
     unsigned int i, width;
     unsigned int image_counter;
 
-    if ((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0) {
+    if ((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0)
+    {
         x_start = x_start / 8;
         x_end = x_end / 8;
-    } else {
+    }
+    else
+    {
         x_start = x_start / 8;
         x_end = x_end % 8 == 0 ? x_end / 8 : x_end / 8 + 1;
     }
@@ -388,17 +370,12 @@ void Epd_Display_Partial_Fast(Epd *epd, const unsigned char* image, unsigned int
     Epd_SendData(epd, (y_start >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x24);
-    for (i = 0; i < image_counter; i++) {
+    for (i = 0; i < image_counter; i++)
+    {
         Epd_SendData(epd, image[i]);
     }
     Epd_TurnOnDisplay_Partial_Fast(epd);
 }
-
-
-
-
-
-
 
 void Epd_TurnOnDisplay_Partial_Fast(Epd *epd)
 {
@@ -408,21 +385,18 @@ void Epd_TurnOnDisplay_Partial_Fast(Epd *epd)
     Epd_ReadBusy(epd);
 }
 
-
-
-
-
-
-
 void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
 {
     unsigned int i, width;
     unsigned int image_counter;
 
-    if((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0) {
+    if ((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0)
+    {
         x_start = x_start / 8;
         x_end = x_end / 8;
-    } else {
+    }
+    else
+    {
         x_start = x_start / 8;
         x_end = x_end % 8 == 0 ? x_end / 8 : x_end / 8 + 1;
     }
@@ -463,14 +437,14 @@ void Epd_Display_Partial(Epd *epd, unsigned char *image, unsigned int x_start, u
     Epd_SendData(epd, (y_start >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x24);
-    for (i = 0; i < image_counter; i++) {
+    for (i = 0; i < image_counter; i++)
+    {
         Epd_SendData(epd, image[i]);
     }
+
+    
     Epd_TurnOnDisplay_Partial(epd);
 }
-
-
-
 
 void Epd_TurnOnDisplay_Partial(Epd *epd)
 {
@@ -480,21 +454,20 @@ void Epd_TurnOnDisplay_Partial(Epd *epd)
     Epd_ReadBusy(epd);
 }
 
-
-
-
-
-void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, 
-unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end)
+void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1,
+                                unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end)
 {
     unsigned int i, width1, width2;
     unsigned int image1_counter, image2_counter;
 
     // Obliczenia dla pierwszego obszaru
-    if((x1_start % 8 + x1_end % 8 == 8 && x1_start % 8 > x1_end % 8) || x1_start % 8 + x1_end % 8 == 0 || (x1_end - x1_start) % 8 == 0) {
+    if ((x1_start % 8 + x1_end % 8 == 8 && x1_start % 8 > x1_end % 8) || x1_start % 8 + x1_end % 8 == 0 || (x1_end - x1_start) % 8 == 0)
+    {
         x1_start = x1_start / 8;
         x1_end = x1_end / 8;
-    } else {
+    }
+    else
+    {
         x1_start = x1_start / 8;
         x1_end = x1_end % 8 == 0 ? x1_end / 8 : x1_end / 8 + 1;
     }
@@ -506,10 +479,13 @@ unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int 
     y1_end -= 1;
 
     // Obliczenia dla drugiego obszaru
-    if((x2_start % 8 + x2_end % 8 == 8 && x2_start % 8 > x2_end % 8) || x2_start % 8 + x2_end % 8 == 0 || (x2_end - x2_start) % 8 == 0) {
+    if ((x2_start % 8 + x2_end % 8 == 8 && x2_start % 8 > x2_end % 8) || x2_start % 8 + x2_end % 8 == 0 || (x2_end - x2_start) % 8 == 0)
+    {
         x2_start = x2_start / 8;
         x2_end = x2_end / 8;
-    } else {
+    }
+    else
+    {
         x2_start = x2_start / 8;
         x2_end = x2_end % 8 == 0 ? x2_end / 8 : x2_end / 8 + 1;
     }
@@ -552,7 +528,8 @@ unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int 
     Epd_SendData(epd, (y1_start >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x24);
-    for (i = 0; i < image1_counter; i++) {
+    for (i = 0; i < image1_counter; i++)
+    {
         Epd_SendData(epd, image1[i]);
     }
 
@@ -575,57 +552,39 @@ unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int 
     Epd_SendData(epd, (y2_start >> 8) & 0x01);
 
     Epd_SendCommand(epd, 0x24);
-    for (i = 0; i < image2_counter; i++) {
+    for (i = 0; i < image2_counter; i++)
+    {
         Epd_SendData(epd, image2[i]);
     }
 
     Epd_TurnOnDisplay_Partial(epd);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Epd_DisplayFull(Epd *epd, const unsigned char *image) {
+void Epd_DisplayFull(Epd *epd, const unsigned char *image)
+{
     unsigned int width = (epd->width % 8 == 0) ? (epd->width / 8) : (epd->width / 8 + 1);
     unsigned int height = epd->height;
 
     Epd_SendCommand(epd, 0x24); // Start data transmission
-    for (unsigned int j = 0; j < height; j++) {
-        for (unsigned int i = 0; i < width; i++) {
+    for (unsigned int j = 0; j < height; j++)
+    {
+        for (unsigned int i = 0; i < width; i++)
+        {
             Epd_SendData(epd, image[i + j * width]);
         }
     }
 
     Epd_SendCommand(epd, 0x26); // Data transmission for the next frame
-    for (unsigned int j = 0; j < height; j++) {
-        for (unsigned int i = 0; i < width; i++) {
+    for (unsigned int j = 0; j < height; j++)
+    {
+        for (unsigned int i = 0; i < width; i++)
+        {
             Epd_SendData(epd, image[i + j * width]);
         }
     }
 
     Epd_TurnOnDisplay(epd); // Turn on display
 }
-
-
-
-
 
 void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
 {
@@ -662,24 +621,24 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
     Epd_SendCommand(epd, 0x3C);
     Epd_SendData(epd, 0x80);
 
-    Epd_SendCommand(epd, 0x44);       // set RAM x address start/end
-    Epd_SendData(epd, x_start & 0xff);  // RAM x address start
-    Epd_SendData(epd, x_end & 0xff);    // RAM x address end
+    Epd_SendCommand(epd, 0x44);        // set RAM x address start/end
+    Epd_SendData(epd, x_start & 0xff); // RAM x address start
+    Epd_SendData(epd, x_end & 0xff);   // RAM x address end
 
-    Epd_SendCommand(epd, 0x45);       // set RAM y address start/end
-    Epd_SendData(epd, y_start & 0xff);  // RAM y address start
-    Epd_SendData(epd, (y_start >> 8) & 0x01);  // RAM y address start
-    Epd_SendData(epd, y_end & 0xff);    // RAM y address end
+    Epd_SendCommand(epd, 0x45);               // set RAM y address start/end
+    Epd_SendData(epd, y_start & 0xff);        // RAM y address start
+    Epd_SendData(epd, (y_start >> 8) & 0x01); // RAM y address start
+    Epd_SendData(epd, y_end & 0xff);          // RAM y address end
     Epd_SendData(epd, (y_end >> 8) & 0x01);
 
-    Epd_SendCommand(epd, 0x4E);         // set RAM x address count to 0
+    Epd_SendCommand(epd, 0x4E); // set RAM x address count to 0
     Epd_SendData(epd, x_start & 0xff);
 
-    Epd_SendCommand(epd, 0x4F);         // set RAM y address count to 0
+    Epd_SendCommand(epd, 0x4F); // set RAM y address count to 0
     Epd_SendData(epd, y_start & 0xff);
     Epd_SendData(epd, (y_start >> 8) & 0x01);
 
-    Epd_SendCommand(epd, 0x24);   // Write Black and White image to RAM
+    Epd_SendCommand(epd, 0x24); // Write Black and White image to RAM
     for (i = 0; i < image_counter; i++)
     {
         Epd_SendData(epd, image[i]);
@@ -698,4 +657,68 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
 
 
 
+void Epd_Display_Partial_DMA(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
+{
+    unsigned int width, height, line_width;
+    unsigned int image_counter;
 
+    // Obliczenie szerokości i wysokości
+    if ((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0)
+    {
+        x_start = x_start / 8;
+        x_end = x_end / 8;
+    }
+    else
+    {
+        x_start = x_start / 8;
+        x_end = x_end % 8 == 0 ? x_end / 8 : x_end / 8 + 1;
+    }
+
+    width = x_end - x_start;
+    height = y_end - y_start;
+    image_counter = width * height;
+
+    x_end -= 1;
+    y_end -= 1;
+
+    // Resetowanie e-papieru
+    Epd_Reset(epd);
+
+    Epd_SendCommand(epd, 0x3C);
+    Epd_SendData(epd, 0x80);
+
+    Epd_SendCommand(epd, 0x21);
+    Epd_SendData(epd, 0x00);
+    Epd_SendData(epd, 0x00);
+
+    Epd_SendCommand(epd, 0x3C);
+    Epd_SendData(epd, 0x80);
+
+    // Ustawianie okna wyświetlania
+    Epd_SendCommand(epd, 0x44);
+    Epd_SendData(epd, x_start & 0xff);
+    Epd_SendData(epd, x_end & 0xff);
+
+    Epd_SendCommand(epd, 0x45);
+    Epd_SendData(epd, y_start & 0xff);
+    Epd_SendData(epd, (y_start >> 8) & 0x01);
+    Epd_SendData(epd, y_end & 0xff);
+    Epd_SendData(epd, (y_end >> 8) & 0x01);
+
+    // Ustawianie pozycji początkowej pamięci wyświetlacza
+    Epd_SendCommand(epd, 0x4E);
+    Epd_SendData(epd, x_start & 0xff);
+
+    Epd_SendCommand(epd, 0x4F);
+    Epd_SendData(epd, y_start & 0xff);
+    Epd_SendData(epd, (y_start >> 8) & 0x01);
+
+    // Wysyłanie danych obrazu do pamięci wyświetlacza
+    Epd_SendCommand(epd, 0x24);
+    
+    // Użycie DMA do przesłania danych
+    Epd_SendData_DMA(epd, image, image_counter);
+
+    // Włączenie wyświetlacza
+    Epd_TurnOnDisplay_Partial(epd);
+}
