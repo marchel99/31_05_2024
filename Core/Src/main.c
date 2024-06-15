@@ -211,7 +211,11 @@ int main(void)
     Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+   // Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
+
+
+
 
     // IKONY
     Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);

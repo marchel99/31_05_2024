@@ -51,7 +51,7 @@ void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, 
 
 
 
-
+void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth);
 
 
 

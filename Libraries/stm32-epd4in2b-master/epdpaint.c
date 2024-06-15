@@ -323,7 +323,12 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
 
 
 
-
+void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth) {
+    int textLength = strlen(text);
+    int textWidth = textLength * font->Width;
+    int centeredX = (displayWidth - textWidth) / 2;
+    Paint_DrawStringAt(paint, centeredX, y, text, font, COLORED);
+}
 
 
 
