@@ -418,7 +418,8 @@ void Epd_TurnOnDisplay_Partial(Epd *epd)
 
 
 
-void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end)
+void Epd_Display_Partial_Double(Epd *epd, unsigned char *image1, 
+unsigned int x1_start, unsigned int y1_start, unsigned int x1_end, unsigned int y1_end, unsigned char *image2, unsigned int x2_start, unsigned int y2_start, unsigned int x2_end, unsigned int y2_end)
 {
     unsigned int i, width1, width2;
     unsigned int image1_counter, image2_counter;
@@ -624,6 +625,12 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
     Epd_SendCommand(epd, 0x20);
     Epd_ReadBusy(epd);
 }
+
+
+
+
+
+
 
 
 

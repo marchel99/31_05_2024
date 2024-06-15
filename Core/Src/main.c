@@ -1,4 +1,3 @@
-
 /* USER CODE BEGIN Header */
 /**
  ******************************************************************************
@@ -35,21 +34,24 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
-
 /* USER CODE BEGIN PM */
 
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+
 I2C_HandleTypeDef hi2c1;
+
 SPI_HandleTypeDef hspi1;
+
+TIM_HandleTypeDef htim2;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -63,6 +65,7 @@ static void MX_I2C1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -90,6 +93,7 @@ int __io_putchar(int ch)
  */
 int main(void)
 {
+
     /* USER CODE BEGIN 1 */
     Epd epd;
     Paint paint;
@@ -97,8 +101,6 @@ int main(void)
     Paint right_paint;
     unsigned char left_image[40 * 28 / 8] = {0};  // Bufor dla licznika
     unsigned char right_image[40 * 28 / 8] = {0}; // Bufor dla baterii
-
-
 
     /* USER CODE END 1 */
 
@@ -124,6 +126,7 @@ int main(void)
     MX_USART2_UART_Init();
     MX_ADC1_Init();
     MX_SPI1_Init();
+    MX_TIM2_Init();
     /* USER CODE BEGIN 2 */
 
     if (Epd_Init(&epd) != 0)
@@ -171,7 +174,12 @@ int main(void)
     Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
     Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
+ Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
 
+
+   Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+    // IKONY 
     Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
@@ -181,9 +189,9 @@ int main(void)
     Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
     Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
 
-    Paint_DrawStringAt(&paint, 10, 275, "Created by Marchel99", &Font16, COLORED);
+   
 
-    Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+    
 
     // Ustawienie obrazu dla licznika
     Paint_Init(&paint, left_image, 40, 28);
@@ -192,44 +200,55 @@ int main(void)
     // Ustawienie obrazu dla baterii
     Paint_Init(&paint, right_image, 40, 28);
     Paint_Clear(&paint, UNCOLORED);
+
+    HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+
+  
     /* USER CODE END 2 */
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
-int counter = 1;
-int batteryLevel = 0; // Przykładowy poziom naładowania (0-3)
-int updateBattery = 0;
+    int counter = 1;
+    int batteryLevel = 0; // Przykładowy poziom naładowania (0-3)
+    int updateBattery = 0;
     // DrawBattery(&paint, 350, 10, 30, 15, batteryLevel, COLORED);
     while (1)
     {
 
-// Aktualizacja licznika
-    Paint_Init(&left_paint, left_image, 40, 28);
-    Paint_Clear(&left_paint, UNCOLORED);
-    char buffer[100]; // Zwiększ rozmiar bufora
-    snprintf(buffer, sizeof(buffer), "%d", counter++);
-    Paint_DrawStringAt(&left_paint, 10, 5, buffer, &Font20, COLORED);
-    Epd_Display_Partial(&epd, Paint_GetImage(&left_paint), 0, 0, 40, 28);
 
-    // Aktualizacja baterii co 2 sekundy
-    if (updateBattery % 2 == 0)
-    {
-        Paint_Init(&right_paint, right_image, 40, 28);
-        Paint_Clear(&right_paint, UNCOLORED);
-        DrawBattery(&right_paint, 2, 2, 30, 15, COLORED); // Rysuj obrys baterii
-        DrawBatteryLevel(&right_paint, 2, 2, 30, 15, batteryLevel, COLORED);
-        batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
-        Epd_Display_Partial(&epd, Paint_GetImage(&right_paint), 350, 10, 380, 32);
-    }
-    updateBattery++;
-
- 
+        // Aktualizacja licznika
+        Paint_Init(&left_paint, left_image, 40, 28);
+        Paint_Clear(&left_paint, UNCOLORED);
+        char buffer[100]; // Zwiększ rozmiar bufora
+        snprintf(buffer, sizeof(buffer), "%d", counter++);
+        Paint_DrawStringAt(&left_paint, 10, 5, buffer, &Font20, COLORED);
 
 
+  // Odczyt wartości enkodera
+        int encoder = __HAL_TIM_GET_COUNTER(&htim2);
+        printf("Encoder: %d\n", encoder);
+
+
+
+        Epd_Display_Partial(&epd, Paint_GetImage(&left_paint), 0, 0, 40, 28);
+
+        // Aktualizacja baterii co 2 sekundy
+        if (updateBattery % 2 == 0)
+        {
+            Paint_Init(&right_paint, right_image, 40, 28);
+            Paint_Clear(&right_paint, UNCOLORED);
+            DrawBattery(&right_paint, 2, 2, 30, 15, COLORED); // Rysuj obrys baterii
+            DrawBatteryLevel(&right_paint, 2, 2, 30, 15, batteryLevel, COLORED);
+            batteryLevel = (batteryLevel + 1) % 4; // Cykl poziomów naładowania od 0 do 3
+            Epd_Display_Partial(&epd, Paint_GetImage(&right_paint), 350, 10, 380, 32);
+        }
+        updateBattery++;
 
         HAL_Delay(100); // Delay for 1 second
 
         /* USER CODE END WHILE */
+
+        /* USER CODE BEGIN 3 */
     }
     /* USER CODE END 3 */
 }
@@ -428,7 +447,7 @@ static void MX_SPI1_Init(void)
     hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
     hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
     hspi1.Init.NSS = SPI_NSS_SOFT;
-    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
     hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
     hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
     hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -442,6 +461,54 @@ static void MX_SPI1_Init(void)
     /* USER CODE BEGIN SPI1_Init 2 */
 
     /* USER CODE END SPI1_Init 2 */
+}
+
+/**
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM2_Init(void)
+{
+
+    /* USER CODE BEGIN TIM2_Init 0 */
+
+    /* USER CODE END TIM2_Init 0 */
+
+    TIM_Encoder_InitTypeDef sConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+    /* USER CODE BEGIN TIM2_Init 1 */
+
+    /* USER CODE END TIM2_Init 1 */
+    htim2.Instance = TIM2;
+    htim2.Init.Prescaler = 0;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 29;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+    sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
+    sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
+    sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
+    sConfig.IC1Filter = 0;
+    sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
+    sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
+    sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
+    sConfig.IC2Filter = 0;
+    if (HAL_TIM_Encoder_Init(&htim2, &sConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM2_Init 2 */
+
+    /* USER CODE END TIM2_Init 2 */
 }
 
 /**
@@ -473,7 +540,6 @@ static void MX_USART2_UART_Init(void)
     {
         Error_Handler();
     }
-
     /* USER CODE BEGIN USART2_Init 2 */
 
     /* USER CODE END USART2_Init 2 */

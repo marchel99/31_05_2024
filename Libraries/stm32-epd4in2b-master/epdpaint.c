@@ -1,6 +1,7 @@
 #include "epdpaint.h"
 #include <stdlib.h>
 #include <string.h>
+#include "imagedata.h"
 
 
 
@@ -334,3 +335,36 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
 
 
 
+
+
+
+
+
+
+
+
+
+void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, int height, int selected) {
+    if (selected) {
+        // Rysuj migający prostokąt wokół ikony
+        Paint_DrawRectangle(paint, x - 2, y - 2, x + width + 2, y + height + 2, COLORED);
+    }
+    Paint_DrawBitmap(paint, icon, x, y, width, height, COLORED);
+}
+
+void UpdateIcons(Paint *paint, int selected_icon) {
+    Paint_Clear(paint, UNCOLORED);
+    int icons_y = 200;
+    int icon_size = 48;
+    int spacing = 50;
+    
+    // Tablica z ikonami
+    const unsigned char *icons[] = {icon_temp, icon_humi, icon_sun, icon_leaf, icon_sunset, icon_sunrise, icon_wind, icon_settings};
+    int num_icons = sizeof(icons) / sizeof(icons[0]);
+    
+    for (int i = 0; i < num_icons; i++) {
+        int x = 5 + i * spacing;
+        int selected = (i == selected_icon);
+        DrawIcon(paint, icons[i], x, icons_y, icon_size, icon_size, selected);
+    }
+}
