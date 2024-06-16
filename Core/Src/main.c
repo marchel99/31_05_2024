@@ -82,55 +82,15 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-int getIconIndex(uint32_t encoderValue);
+
+
+//void DisplayIcon(int iconIndex);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int getIconIndex(uint32_t encoderValue) {
-    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
-    static int iconIndex = 1; // Zakładam, że startujesz od ikony 1
 
-    // Oblicz różnicę wartości enkodera
-    int delta = (int)(encoderValue / 2) - lastEncoderValue;
-
-    // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
-    if (abs(delta) > 4) { // Ignorowanie dużych zmian (np. teleportacji)
-        lastEncoderValue = (int)(encoderValue / 2); // Mimo to aktualizujemy lastEncoderValue
-        return iconIndex;
-    }
-
-    lastEncoderValue = (int)(encoderValue / 2);
-
-    // Obsługa ruchów
-    if (delta > 0) { // Ruch w prawo
-        iconIndex += delta;
-        if (iconIndex > 8) {
-            iconIndex = 8; // Ogranicz do maksymalnej wartości
-        }
-    } else if (delta < 0) { // Ruch w lewo
-        iconIndex += delta;
-        if (iconIndex < 1) {
-            iconIndex = 1; // Ogranicz do minimalnej wartości
-        }
-    }
-
-    return iconIndex;
-}
-
-// POD PRINTF
-int __io_putchar(int ch)
-{
-    if (ch == '\n')
-    {
-        uint8_t ch2 = '\r';
-        HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
-    }
-
-    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return 1;
-}
 
 /* USER CODE END 0 */
 
@@ -190,6 +150,7 @@ int main(void)
         return 1;
     }
     Epd_Clear(&epd);
+    
 
     // Inicjalizacja obrazu dla górnego paska
     Paint_Init(&paint_top, top_menu, 400,300);
@@ -200,44 +161,16 @@ int main(void)
     // Początkowe wypełnienie ekranu
     unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
     Paint_Init(&paint, full_image, 400, 300);
-    Paint_Clear(&
-    
-    paint, UNCOLORED);
+    Paint_Clear(&paint, UNCOLORED);
 
-    // interfejs
-    Paint_DrawStringAt(&paint, 10, 35, "", &Font16, COLORED);
-    Paint_DrawRoundedRectangle(&paint, 10, 50, 190, 170, 10, COLORED);
-    Paint_DrawRoundedRectangle(&paint, 210, 50, 390, 170, 10, COLORED);
-
-    // Tekst w lewym prostokącie
-    Paint_DrawStringAt(&paint, 20, 60, "AQI: 1", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 20, 120, "CO: <5ppm", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 20, 140, "CO2: 412ppm", &Font16, COLORED);
-
-    // Tekst w prawym prostokącie
-    Paint_DrawStringAt(&paint, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 220, 80, "HUM: 51%", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-    Paint_DrawStringAt(&paint, 220, 120, "DP: 12 C", &Font16, COLORED);
-
-Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
-
-
-
-
-    // IKONY
-    Paint_DrawBitmap(&paint, icon_temp, 5, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_humi, 55, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_sun, 105, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_leaf, 155, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_sunset, 205, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_sunrise, 255, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_wind, 305, 200, 48, 48, COLORED);
-    Paint_DrawBitmap(&paint, icon_settings, 355, 200, 48, 48, COLORED);
+ 
 
     Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+
+
+
+
 
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
@@ -249,57 +182,50 @@ Paint_DrawStringAtCenter(&paint, 275, "Created by Marchel99", &Font16, 400);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     int impulse_counter = 0;
+  int lastIconIndex = -1;
+
 
     while (1)
     {
 
-        impulse_counter++;
+      
 
-        if (impulse_counter >= 6)
-        {
-            // Pełne odświeżanie wyświetlacza co 6 impulsów
-            Paint_Clear(&paint_top, UNCOLORED);
+ impulse_counter++;
 
-            uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-            int iconIndex = getIconIndex(encoderValue);
+    uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+    int iconIndex = getIconIndex(encoderValue);
 
-            char buffer_top[100];
-            snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%d", iconIndex,encoderValue);
-            Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
+    if (impulse_counter >= 6) {
+        // Pełne odświeżanie wyświetlacza co 6 impulsów
+        Paint_Clear(&paint_top, UNCOLORED);
 
-            snprintf(buffer_top, sizeof(buffer_top), "%d", counter++);
-            Paint_DrawStringAt(&paint_top, 10, 5, buffer_top, &Font20, COLORED);
+        DisplayTopSection(&paint_top, iconIndex, encoderValue, counter++, batteryLevel);
+        DisplayMiddleSection(&paint_top);
+        DisplayBottomSection(&paint_top);
+        DisplayIcon(&paint_top, iconIndex);
 
-            DrawBattery(&paint_top, 350, 2, 32, 24, COLORED);
-            DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
-            batteryLevel = (batteryLevel + 1) % 4;
+        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
 
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
+        UpdateBatteryLevel(&batteryLevel);
 
-            impulse_counter = 0;
-        }
-        else
-        {
-            Paint_Clear(&paint_top, UNCOLORED);
+        impulse_counter = 0;
+    } else {
+        // Odświeżanie tylko ikon i tekstu
+        Paint_Clear(&paint_top, UNCOLORED);
 
-            uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-            int iconIndex = getIconIndex(encoderValue);
+        DisplayTopSection(&paint_top, iconIndex, encoderValue, counter, batteryLevel);
+        DisplayMiddleSection(&paint_top);
+        DisplayBottomSection(&paint_top);
+        DisplayIcon(&paint_top, iconIndex);
 
-            char buffer_top[100];
-            snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%d", iconIndex,encoderValue);
-            Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
+        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
+    }
 
-            snprintf(buffer_top, sizeof(buffer_top), "%d", counter++);
-            Paint_DrawStringAt(&paint_top, 10, 5, buffer_top, &Font20, COLORED);
+    HAL_Delay(30); // Opóźnienie 30 ms
 
-            DrawBattery(&paint_top, 350, 2, 32, 24, COLORED);
-            DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
-            batteryLevel = (batteryLevel + 1) % 4;
 
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
-        }
 
-        HAL_Delay(30); // Opóźnienie 30 ms
+
 
     /* USER CODE END WHILE */
 
@@ -506,7 +432,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -713,6 +639,12 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+
+
+
+  
+
+  
 /* USER CODE END 4 */
 
 /**
