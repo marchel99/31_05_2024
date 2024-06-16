@@ -3,7 +3,7 @@
 #include <string.h>
 #include "imagedata.h"
 #include "epd4in2b.h"
-
+#include "user_interface.h"
 
 
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height) {

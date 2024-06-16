@@ -64,36 +64,13 @@ void updateIconIndex(uint32_t encoderValue);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void updateIconIndex(uint32_t encoderValue)
-{
-  if (encoderValue > lastEncoderValue)
-  {
-    // Ruch w prawo
-    if (iconIndex < 8)
-    {
-      iconIndex++;
-    }
-  }
-  else if (encoderValue < lastEncoderValue)
-  {
-    // Ruch w lewo
-    if (iconIndex > 1)
-    {
-      iconIndex--;
-    }
-  }
-  lastEncoderValue = encoderValue;
 
-  // Aktualizacja ikony
-  char buffer_top[100];
-  snprintf(buffer_top, sizeof(buffer_top), "Ikona: %d", iconIndex);
-  Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
-}
 
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
 extern DMA_HandleTypeDef hdma_spi1_tx;
+extern DMA_HandleTypeDef hdma_spi1_rx;
 extern TIM_HandleTypeDef htim2;
 extern TIM_HandleTypeDef htim3;
 /* USER CODE BEGIN EV */
@@ -239,6 +216,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles DMA1 channel2 global interrupt.
+  */
+void DMA1_Channel2_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_spi1_rx);
+  /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel2_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA1 channel3 global interrupt.
   */
 void DMA1_Channel3_IRQHandler(void)
@@ -282,39 +273,6 @@ void TIM3_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    if (htim->Instance == TIM2)
-    {
-        static uint32_t lastEncoderValue = 0;
-        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
 
-        if ((encoderValue / 2) != (lastEncoderValue / 2))
-        {
-            // Aktualizacja ikony co 2 impulsy
-            int iconIndex = getIconIndex(encoderValue);
-            lastEncoderValue = encoderValue;
-
-            // Pełne odświeżanie wyświetlacza
-            Paint_Clear(&paint_top, UNCOLORED);
-
-            // Aktualizacja ikony
-            char buffer_top[100];
-            snprintf(buffer_top, sizeof(buffer_top), "Ikona: %d", iconIndex);
-            Paint_DrawStringAt(&paint_top, 150, 5, buffer_top, &Font20, COLORED);
-
-            snprintf(buffer_top, sizeof(buffer_top), "%d", counter++);
-            Paint_DrawStringAt(&paint_top, 10, 5, buffer_top, &Font20, COLORED);
-
-            // Aktualizacja baterii na górnym pasku
-            DrawBattery(&paint_top, 350, 2, 32, 24, COLORED);
-            DrawBatteryLevel(&paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
-            batteryLevel = (batteryLevel + 1) % 4;
-
-            // Wyświetlanie górnego paska
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 28);
-        }
-    }
-}
 
 /* USER CODE END 1 */

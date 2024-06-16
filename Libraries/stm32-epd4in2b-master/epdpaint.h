@@ -1,8 +1,6 @@
 #ifndef _EPDPAINT_H_
 #define _EPDPAINT_H_
 
-#define COLORED    1
-#define UNCOLORED   0
 
 
 

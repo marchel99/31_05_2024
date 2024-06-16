@@ -151,3 +151,4 @@ int getIconIndex(uint32_t encoderValue) {
 void UpdateBatteryLevel(uint8_t* batteryLevel) {
     *batteryLevel = (*batteryLevel + 1) % 4;
 }
+
