@@ -30,6 +30,8 @@
 #include "fonts.h"
 #include "imagedata.h"
 #include "user_interface.h"
+#include "globals.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -133,71 +135,49 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* E-paper display setup */
-
-  HAL_TIM_Base_Start_IT(&htim3); // Uruchom TIM3 w trybie przerwań
-
-
-
-
-  unsigned char top_menu[400 * 300 / 8] = {0}; // Bufor dla całego gornego  paska
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+  // HAL_TIM_Base_Start_IT(&htim3); // Uruchom TIM3 w trybie przerwań
 
   if (Epd_Init(&epd) != 0)
   {
     printf("e-Paper init failed\n");
     return 1;
   }
+
   Epd_Clear(&epd);
-    printf("e-Paper init succeed!\n");
-  // Inicjalizacja obrazu dla górnego paska
+  printf("e-Paper init succeed!\n");
+
+  unsigned char top_menu[(400 * 300) / 8 + 100] = {0}; // Bufor dla całego gornego  paska
+
+  // width should be the multiple of 8
   Paint_Init(&paint_top, top_menu, 400, 300);
   Paint_Clear(&paint_top, UNCOLORED);
 
   // Początkowe wypełnienie ekranu
-  unsigned char full_image[(400 * 300) / 8] = {0}; // Cały ekran 400x300
-  Paint_Init(&paint, full_image, 400, 300);
-  Paint_Clear(&paint, UNCOLORED);
 
-  Epd_DisplayFull(&epd, Paint_GetImage(&paint));
-
-  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+  Epd_DisplayFull(&epd, Paint_GetImage(&paint_top));
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  int impulse_counter = 0;
 
   while (1)
   {
 
-    impulse_counter++;
-
     uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
     int iconIndex = getIconIndex(encoderValue);
-
     // Użycie zmiennej do śledzenia ostatniej wartości iconIndex
-    static int lastIconIndex = -1;
 
-    // Sprawdzenie, czy wartość iconIndex zmieniła się lub minęło 6 impulsów
-    if (iconIndex != lastIconIndex || impulse_counter >= 6)
-    {
-        // Pełne odświeżanie wyświetlacza co 6 impulsów lub zmiana iconIndex
-        Paint_Clear(&paint_top, UNCOLORED);
+    Paint_Clear(&paint_top, UNCOLORED);
 
-        DisplayTopSection(&paint_top, iconIndex, encoderValue, counter++, batteryLevel);
-        DisplayMiddleSection(&paint_top);
-        DisplayIcon(&paint_top, iconIndex);
+    DisplayTopSection(&paint_top, iconIndex, encoderValue, counter++, batteryLevel);
+    DisplayMiddleSection(&paint_top);
+    DisplayBottomSection(&paint_top, iconIndex);
 
-        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
 
-        // Resetowanie licznika impulsów
-        impulse_counter = 0;
-        
-        // Aktualizacja lastIconIndex
-        lastIconIndex = iconIndex;
-    }
-
-    HAL_Delay(30); // Opóźnienie 30 ms
+    HAL_Delay(1); // Opóźnienie 1 ms
 
     /* USER CODE END WHILE */
 
@@ -233,7 +213,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 35;
+  RCC_OscInitStruct.PLL.PLLN = 40;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -349,7 +329,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0xC010151E;
+  hi2c1.Init.Timing = 0x10909CEC;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -404,7 +384,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -491,7 +471,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 0;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 65535;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)

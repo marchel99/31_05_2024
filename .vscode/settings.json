@@ -14,6 +14,8 @@
         "compare": "c",
         "stdlib.h": "c",
         "fonts.h": "c",
-        "epdpaint.h": "c"
+        "epdpaint.h": "c",
+        "imagedata.h": "c",
+        "globals.h": "c"
     }
 }

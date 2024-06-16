@@ -653,14 +653,10 @@ void Epd_Display_Partial_Not_Refresh(Epd *epd, unsigned char *image, unsigned in
 
 
 
-
-
-
-
 void Epd_Display_Partial_DMA(Epd *epd, unsigned char *image, unsigned int x_start, unsigned int y_start, unsigned int x_end, unsigned int y_end)
 {
-    unsigned int width, height, line_width;
-    unsigned int image_counter;
+    static int call_count = 0; // Licznik wywołań funkcji
+    unsigned int width, height, image_counter;
 
     // Obliczenie szerokości i wysokości
     if ((x_start % 8 + x_end % 8 == 8 && x_start % 8 > x_end % 8) || x_start % 8 + x_end % 8 == 0 || (x_end - x_start) % 8 == 0)
@@ -681,8 +677,11 @@ void Epd_Display_Partial_DMA(Epd *epd, unsigned char *image, unsigned int x_star
     x_end -= 1;
     y_end -= 1;
 
-    // Resetowanie e-papieru
-    Epd_Reset(epd);
+    // Resetowanie e-papieru tylko co drugie wywołanie funkcji
+    if (call_count % 60 == 0) {
+        Epd_Reset(epd); 
+    }
+    call_count++;
 
     Epd_SendCommand(epd, 0x3C);
     Epd_SendData(epd, 0x80);

@@ -3,6 +3,7 @@
 #include "fonts.h"
 #include "imagedata.h"
 #include <stdio.h>
+
 #include "epdpaint.h"
 
 int buttonState = 0;
@@ -91,19 +92,36 @@ void DisplayMiddleSection(Paint *paint_top)
     Paint_DrawStringAt(paint_top, 220, 120, "DP: 12 C", &Font16, COLORED);
 }
 
-void DisplayBottomSection(Paint *paint_top)
-{
-    Paint_DrawStringAtCenter(paint_top, 275, "Created by Marchel99", &Font16, 400);
-}
 
-void DisplayIcon(Paint *paint_top, int iconIndex)
+
+void DisplayBottomSection(Paint *paint_top, int iconIndex)
 {
-    int icon_height = 270;
+    int icon_height = 230;
+    int desc_offset = 20;
+    const char *iconDescriptions[] = {
+        "Wykresy",    // Opis dla ikony 1
+        "Wilgotnosc", // Opis dla ikony 2
+        "Slonce",     // Opis dla ikony 3
+        "Lisc",       // Opis dla ikony 4
+        "Pomiary",     // Opis dla ikony 5
+        "Tryb ciemny",     // Opis dla ikony 6
+        "Wiatr",      // Opis dla ikony 7
+        "Ustawienia"  // Opis dla ikony 8
+    };
+    // Upewnij się, że indeks jest w zakresie
+    if (iconIndex < 1 || iconIndex > 8)
+    {
+        return;
+    }
+
+    // Wyświetlanie opisu ikony nad bitmapą
+    Paint_DrawStringAtCenter(paint_top, icon_height - desc_offset, iconDescriptions[iconIndex - 1], &Font20, 400);
     switch (iconIndex)
     {
 
     case 1:
         Paint_DrawBitmap(paint_top, icon_temp, 5, icon_height, 48, 48, COLORED);
+        Paint_DrawStringAtCenter(paint_top, icon_height - desc_offset, "Wykresy", &Font20, 400);
         break;
     case 2:
         Paint_DrawBitmap(paint_top, icon_humi, 55, icon_height, 48, 48, COLORED);

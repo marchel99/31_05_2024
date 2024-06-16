@@ -17,8 +17,8 @@ void UI_HandleButtonPress_8(void);
 
 void DisplayTopSection(Paint* paint_top, int iconIndex, uint32_t encoderValue, int counter, uint8_t batteryLevel);
 void DisplayMiddleSection(Paint* paint_top);
-void DisplayBottomSection(Paint* paint_top);
-void DisplayIcon(Paint* paint_top, int iconIndex);
+
+void DisplayBottomSection(Paint* paint_top, int iconIndex);
 void UpdateBatteryLevel(uint8_t* batteryLevel);
 
 int getIconIndex(uint32_t encoderValue);

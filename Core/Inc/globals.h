@@ -5,10 +5,11 @@
 
 
 
-int __io_putchar(int ch);
+
 extern volatile uint32_t encoderValue;
 extern volatile int updateDisplayFlag;
 
 
+int __io_putchar(int ch);
 
 #endif // GLOBALS_H
