@@ -13,9 +13,12 @@ target_compile_definitions(stm32cubemx INTERFACE
 )
 
 target_include_directories(stm32cubemx INTERFACE
+    ../../FATFS/Target
+    ../../FATFS/App
     ../../Core/Inc
     ../../Drivers/STM32L4xx_HAL_Driver/Inc
     ../../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy
+    ../../Middlewares/Third_Party/FatFs/src
     ../../Drivers/CMSIS/Device/ST/STM32L4xx/Include
     ../../Drivers/CMSIS/Include
 )
@@ -24,6 +27,8 @@ target_sources(stm32cubemx INTERFACE
     ../../Core/Src/main.c
     ../../Core/Src/stm32l4xx_it.c
     ../../Core/Src/stm32l4xx_hal_msp.c
+    ../../FATFS/Target/user_diskio.c
+    ../../FATFS/App/fatfs.c
     ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc.c
     ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_adc_ex.c
     ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c
@@ -48,6 +53,11 @@ target_sources(stm32cubemx INTERFACE
     ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c
     ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart_ex.c
     ../../Core/Src/system_stm32l4xx.c
+    ../../Middlewares/Third_Party/FatFs/src/diskio.c
+    ../../Middlewares/Third_Party/FatFs/src/ff.c
+    ../../Middlewares/Third_Party/FatFs/src/ff_gen_drv.c
+    ../../Middlewares/Third_Party/FatFs/src/option/syscall.c
+    ../../Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
     ../../Core/Src/sysmem.c
     ../../Core/Src/syscalls.c
     ../../startup_stm32l476xx.s

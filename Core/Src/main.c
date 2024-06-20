@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -137,6 +138,7 @@ int main(void)
   MX_SPI1_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
   /* E-paper display setup */
@@ -662,10 +664,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DC_Pin|RST_Pin|CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DC_Pin|RST_Pin|CS_Pin|CS_2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : DC_Pin RST_Pin CS_Pin */
-  GPIO_InitStruct.Pin = DC_Pin|RST_Pin|CS_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : DC_Pin RST_Pin CS_Pin CS_2_Pin */
+  GPIO_InitStruct.Pin = DC_Pin|RST_Pin|CS_Pin|CS_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -676,6 +681,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BUSY_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : BUZZ_Pin */
+  GPIO_InitStruct.Pin = BUZZ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(BUZZ_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : EN_SW_Pin */
   GPIO_InitStruct.Pin = EN_SW_Pin;
