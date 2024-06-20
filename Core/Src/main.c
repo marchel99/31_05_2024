@@ -32,6 +32,7 @@
 #include "imagedata.h"
 #include "user_interface.h"
 #include "globals.h"
+#include "ens160.h"
 
 /* USER CODE END Includes */
 
@@ -66,6 +67,11 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
+DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
+extern DFRobot_ENS160_I2C ens160;
+
+
 int counter = 1;
 int batteryLevel = 0;
 int updateBattery = 0;
@@ -93,6 +99,13 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
+void init_ens160(void);
+void read_and_print_ens160_data(void);
+
+int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
+int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
+
+
 // void DisplayIcon(int iconIndex);
 
 /* USER CODE END PFP */
@@ -100,7 +113,36 @@ static void MX_TIM3_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 uint32_t loopCounter = 0; // Licznik impulsów pętli while
+
+
+
+
+
+
+
+
+
+// Redirect r to UART
+int __io_putchar(int ch)
+{
+    if (ch == '\n')
+    {
+        uint8_t ch2 = '\r';
+        HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
+    }
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return 1;
+}
 /* USER CODE END 0 */
+
+
+
+
+
+
+
+
+
 
 /**
   * @brief  The application entry point.
@@ -110,6 +152,21 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+// Initialize the ENS160 sensor
+void init_ens160(void)
+{
+    DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
+
+    while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
+    {
+        printf("ENS160 initialization failed!\r\n");
+        HAL_Delay(3000);
+    }
+    printf("ENS160 initialized successfully!\r\n");
+
+    DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
+    DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
+}
 
   /* USER CODE END 1 */
 
@@ -195,9 +252,10 @@ int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap 
 
 
 
-
+init_ens160();
   while (1)
   {
+read_and_print_ens160_data();
 
     uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
     int iconIndex = getIconIndex(encoderValue);
@@ -228,9 +286,40 @@ int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap 
 
 // Rysowanie obiektów
 Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
+
+
 Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
+
+
+    uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160); 
+
+
+    char buffer_tvoc[20];  // Adjust the buffer size as needed
+  snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d ppm", tvoc); 
+
+
+Paint_DrawStringAt(&paint, 300, 80, "TVOC",&Font20, COLORED);
+Paint_DrawStringAt(&paint, 300, 100, buffer_tvoc,&Font20, COLORED);
+
+
+
+
+
 Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
+
+
+
+
+ uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
+     char buffer_CO2[300];
+  snprintf(buffer_CO2, sizeof(buffer_CO2), "%d ppm", co2);  
+Paint_DrawStringAt(&paint, 20, 100, buffer_CO2,&Font20, COLORED);
+Paint_DrawStringAt(&paint, 20, 80, "CO2",&Font20, COLORED);
+
+
 Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
+
+
 
 // Obliczanie środka geometrycznego czterech obiektów
 int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
@@ -241,7 +330,18 @@ int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness
 
 // Rysowanie centralnego pierścienia
 Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
- 
+
+
+
+
+
+
+uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);  
+   char buffer_AQI[100];
+snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);  
+Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
+Paint_DrawStringAtCenter(&paint, center_y-20, "AQI:", &Font20, 400);
+
 //int r_height = 30;
 //Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
 
