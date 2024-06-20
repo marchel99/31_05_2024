@@ -3,8 +3,8 @@
 
 #include "main.h"
 #include "epdpaint.h"
-#define COLORED     0
-#define UNCOLORED   1
+#define COLORED     1
+#define UNCOLORED   0
 
 void UI_HandleButtonPress_1(void); 
 void UI_HandleButtonPress_2(void); 

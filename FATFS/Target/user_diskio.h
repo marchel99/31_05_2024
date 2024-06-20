@@ -29,9 +29,12 @@
 /* USER CODE BEGIN 0 */
 
 /* Includes ------------------------------------------------------------------*/
+#include "ff_gen_drv.h"
+
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
+
 extern Diskio_drvTypeDef  USER_Driver;
 
 /* USER CODE END 0 */

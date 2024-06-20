@@ -52,7 +52,9 @@ extern uint8_t batteryLevel;
 extern Paint paint_top;
 extern Epd epd;
 extern uint32_t lastEncoderValue;
-extern int iconIndex;
+extern int iconIndexextern;
+ uint16_t Timer1, Timer2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -146,7 +148,10 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+if(Timer1 > 0)
+  Timer1--;
+if(Timer2 > 0)
+  Timer2--;
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {

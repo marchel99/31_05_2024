@@ -3,7 +3,7 @@
 // #include "stm32l4xx_hal_i2c.h"
 #include "stm32l4xx_hal.h"
 
-#define I2C_DEFAULT_ADDRESS 0x36
+#define I2C_DEFAULT_ADDRESS 0x36//0x36
 // Slave address
 
 #define REGISTER_VCELL 0x02
@@ -35,3 +35,5 @@ void write_valrt_min(I2C_HandleTypeDef *hi2c, uint8_t valrt_min_value);
 uint8_t read_valrt_min(I2C_HandleTypeDef *hi2c);
 
 HAL_StatusTypeDef read_reset(I2C_HandleTypeDef *hi2c, uint8_t *reset_value);
+
+void write_reset(I2C_HandleTypeDef *hi2c, uint8_t reset_value);
