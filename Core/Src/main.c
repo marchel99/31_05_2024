@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <stdbool.h>
 #include "epd4in2b.h"
 #include "imagedata.h"
 #include "epdpaint.h"
@@ -37,25 +36,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct
-{
-    float temperature;
-    float pressure;
-    float humidity;
-} BME280_Data;
 
-typedef struct
-{
-    float voltage;
-    float soc;
-} MAX17048_Data;
-
-typedef struct
-{
-    uint16_t aqi;
-    uint16_t tvoc;
-    uint16_t eco2;
-} ENS160_Data;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -100,10 +81,7 @@ void process_SD_card(const char *data);
 void I2C_Scan(void);
 void init_ens160(void);
 void read_and_print_ens160_data(void);
-void print_bme280_data(struct bme280_t *bme280);
-void print_max17048_data(void);
-void print_ens160_data(void);
-void print_sensor_data_to_uart(void);
+void print_sensor_data(void);
 void user_delay_ms(uint32_t period);
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
@@ -111,7 +89,8 @@ float read_voltage(I2C_HandleTypeDef *hi2c);
 float read_soc(I2C_HandleTypeDef *hi2c);
 
 /* USER CODE BEGIN PFP */
-
+void print_sensor_data_bme280(struct bme280_t *bme280);
+void read_adc_values(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -175,14 +154,14 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
     return 0;
 }
 
-// Print sensor data from BME280
-void print_bme280_data(struct bme280_t *bme280)
+// Function to read and print BME280 sensor data
+void print_sensor_data_bme280(struct bme280_t *bme280)
 {
     int32_t temp_raw, pressure_raw, humidity_raw;
 
-    // Change to FORCED_MODE (single measurement)
+    // Set the sensor to FORCED_MODE for a single measurement
     bme280_set_power_mode(BME280_FORCED_MODE);
-    user_delay_ms(100); // Add delay after changing mode
+    user_delay_ms(100); // Add delay after setting the mode
 
     if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
     {
@@ -199,11 +178,19 @@ void print_bme280_data(struct bme280_t *bme280)
         float imp_humi = ((float)v_comp_humidity_u32 / 1024);
         float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
 
-        char buffer[200];
-        printf("________________________________________________________________________\r\n");
-        int length = snprintf(buffer, sizeof(buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
-                              imp_temp, imp_press, imp_humi, dewpt);
-        HAL_UART_Transmit(&huart2, (uint8_t *)buffer, length, HAL_MAX_DELAY);
+        char raw_buffer[200];
+        const char separator[] = "________________________________________________________________________\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+        int length = snprintf(raw_buffer, sizeof(raw_buffer), "ENS160_Status: %d, Raw Temp: %ld, Raw Pressure: %ld, Raw Humidity: %ld\r\n",
+                              DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
+        HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
+
+        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+
+        char display_buffer[200];
+        length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
+                          imp_temp, imp_press, imp_humi, dewpt);
+        HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
     }
     else
     {
@@ -212,34 +199,20 @@ void print_bme280_data(struct bme280_t *bme280)
     }
 }
 
-// Read and print voltage and SoC from MAX17048
-void print_max17048_data(void)
+// Function to read and print voltage and SoC
+void print_sensor_data(void)
 {
-    float voltage = read_voltage(&hi2c1);
+    float voltage_battery = read_voltage(&hi2c1);
     float soc = read_soc(&hi2c1);
 
-    char buffer[100];
-    int length = snprintf(buffer, sizeof(buffer), "Voltage: %.3f V, SoC: %.2f %%\r\n", voltage, soc);
-    HAL_UART_Transmit(&huart2, (uint8_t *)buffer, length, HAL_MAX_DELAY);
+    printf("Voltage: %.3f V, SoC: %.2f %%\r\n", voltage_battery, soc);
 
     // Prepare CSV data
     char data_buffer[256];
-    snprintf(data_buffer, sizeof(data_buffer), "%lu,%.3f,%.2f\r\n", measurement_number++, voltage, soc);
+    snprintf(data_buffer, sizeof(data_buffer), "%lu,%.3f,%.2f\r\n", measurement_number++, voltage_battery, soc);
 
     // Save data to SD card
     process_SD_card(data_buffer);
-}
-
-// Read and print data from ENS160
-void print_ens160_data(void)
-{
-    uint16_t aqi = DFRobot_ENS160_GetAQI(&ens160);
-    uint16_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
-    uint16_t eco2 = DFRobot_ENS160_GetECO2(&ens160);
-
-    char buffer[100];
-    int length = snprintf(buffer, sizeof(buffer), "AQI: %d, TVOC: %d ppb, eCO2: %d ppm\r\n", aqi, tvoc, eco2);
-    HAL_UART_Transmit(&huart2, (uint8_t *)buffer, length, HAL_MAX_DELAY);
 }
 
 // Initialize the ENS160 sensor
@@ -258,21 +231,11 @@ void init_ens160(void)
     DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
 }
 
-// Scan for I2C devices
-void I2C_Scan()
+// Function to scan for I2C devices
+void I2C_Scan(void)
 {
     char buffer[25];
     uint8_t i2c_devices = 0;
-
-    for (uint8_t i = 1; i < 128; i++)
-    {
-        if (HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t)(i << 1), 1, 10) == HAL_OK)
-        {
-            snprintf(buffer, sizeof(buffer), "Found device at 0x%02X\r\n", i);
-            HAL_UART_Transmit(&huart2, (uint8_t *)buffer, strlen(buffer), HAL_MAX_DELAY);
-            i2c_devices++;
-        }
-    }
 
     if (i2c_devices == 0)
     {
@@ -325,7 +288,7 @@ void process_SD_card(const char *data)
 
     // Close the file after writing
     fres = f_close(&fil);
-    if (fres != FR_OK)
+    if (fres != HAL_OK)
     {
         printf("File close error after writing: (%i)\r\n", fres);
         f_mount(NULL, "", 0);
@@ -337,14 +300,27 @@ void process_SD_card(const char *data)
     printf("SD card unmounted successfully!!!\r\n");
 }
 
-// Print sensor data to UART
-void print_sensor_data_to_uart(void)
+// Function to read ADC values and print them
+void read_adc_values(void)
 {
-    printf("________________________________________________________________________\r\n");
-    print_bme280_data(p_bme280);
-    print_max17048_data();
-    print_ens160_data();
-    printf("________________________________________________________________________\r\n");
+    uint32_t value[2];
+    float voltage[2];
+
+    HAL_ADC_Start(&hadc1);
+
+    // Conversion for channel 0
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[0] = HAL_ADC_GetValue(&hadc1);
+
+    // Conversion for channel 1
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[1] = HAL_ADC_GetValue(&hadc1);
+
+    // Convert ADC values to voltage
+    voltage[0] = 3.3f * value[0] / 4095.0f;
+    voltage[1] = 3.3f * value[1] / 4095.0f;
+
+    printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n", value[0], voltage[0], value[1], voltage[1]);
 }
 
 /* USER CODE END 0 */
@@ -383,11 +359,11 @@ int main(void)
     MX_FATFS_Init();
     /* USER CODE BEGIN 2 */
     HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+    HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);  // Calibrate ADC
 
     I2C_Scan();
     init_ens160();
 
-    // Initialize BME280
     p_bme280->bus_write = user_i2c_write;
     p_bme280->bus_read = user_i2c_read;
     p_bme280->delay_msec = user_delay_ms;
@@ -403,7 +379,7 @@ int main(void)
         printf("BME280 initialized successfully!\r\n");
     }
 
-    // Configure BME280
+    // Configure BME280 sensor
     bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
     bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
     bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
@@ -417,33 +393,22 @@ int main(void)
     while (1)
     {
         // Read and print data from sensors
-        print_sensor_data_to_uart();
+        print_sensor_data_bme280(p_bme280);
+        print_sensor_data();
+        read_and_print_ens160_data();
 
-        HAL_Delay(100); // Delay for 1000 ms
+        HAL_Delay(100);  // Delay for 100 milliseconds
 
         // Encoder read and ADC conversion for additional sensors
-        unsigned short en_count = __HAL_TIM_GET_COUNTER(&htim2);
+        unsigned short en_count;
+        en_count = __HAL_TIM_GET_COUNTER(&htim2);
+
         printf("Encoder read: %d\n", en_count);
 
-        HAL_ADC_Start(&hadc1);
+        // Read and print ADC values
+        read_adc_values();
 
-        // Conversion for channel 0
-        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-        uint32_t value0 = HAL_ADC_GetValue(&hadc1);
-
-        // Conversion for channel 1
-        HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-        uint32_t value1 = HAL_ADC_GetValue(&hadc1);
-
-        // Convert ADC values to voltage
-        float voltage0 = 3.3f * value0 / 4095.0f;
-        float voltage1 = 3.3f * value1 / 4095.0f;
-
-        char analog_buffer[200];
-        int length = snprintf(analog_buffer, sizeof(analog_buffer), "ADC0: %.2f V, ADC1: %.2f V\n", voltage0, voltage1);
-        HAL_UART_Transmit(&huart2, (uint8_t *)analog_buffer, length, HAL_MAX_DELAY);
-
-        HAL_Delay(2500);
+        HAL_Delay(250);  // Delay for 250 milliseconds
     }
     /* USER CODE END WHILE */
 
@@ -461,15 +426,15 @@ void SystemClock_Config(void)
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
     /** Configure the main internal regulator output voltage
-     */
+    */
     if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
     {
         Error_Handler();
     }
 
     /** Initializes the RCC Oscillators according to the specified parameters
-     * in the RCC_OscInitTypeDef structure.
-     */
+    * in the RCC_OscInitTypeDef structure.
+    */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
     RCC_OscInitStruct.MSIState = RCC_MSI_ON;
     RCC_OscInitStruct.MSICalibrationValue = 0;
@@ -487,8 +452,9 @@ void SystemClock_Config(void)
     }
 
     /** Initializes the CPU, AHB and APB buses clocks
-     */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    */
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                  | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -511,7 +477,7 @@ static void MX_ADC1_Init(void)
     ADC_ChannelConfTypeDef sConfig = {0};
 
     /** Common config
-     */
+    */
     hadc1.Instance = ADC1;
     hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
     hadc1.Init.Resolution = ADC_RESOLUTION_12B;
@@ -533,7 +499,7 @@ static void MX_ADC1_Init(void)
     }
 
     /** Configure the ADC multi-mode
-     */
+    */
     multimode.Mode = ADC_MODE_INDEPENDENT;
     if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
     {
@@ -541,7 +507,7 @@ static void MX_ADC1_Init(void)
     }
 
     /** Configure Regular Channel
-     */
+    */
     sConfig.Channel = ADC_CHANNEL_1;
     sConfig.Rank = ADC_REGULAR_RANK_1;
     sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
@@ -554,7 +520,7 @@ static void MX_ADC1_Init(void)
     }
 
     /** Configure Regular Channel
-     */
+    */
     sConfig.Channel = ADC_CHANNEL_2;
     sConfig.Rank = ADC_REGULAR_RANK_2;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -585,14 +551,14 @@ static void MX_I2C1_Init(void)
     }
 
     /** Configure Analogue filter
-     */
+    */
     if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
     {
         Error_Handler();
     }
 
     /** Configure Digital filter
-     */
+    */
     if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
     {
         Error_Handler();
