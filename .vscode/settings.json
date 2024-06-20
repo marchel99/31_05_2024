@@ -16,6 +16,7 @@
         "fonts.h": "c",
         "epdpaint.h": "c",
         "imagedata.h": "c",
-        "globals.h": "c"
+        "globals.h": "c",
+        "max.h": "c"
     }
 }

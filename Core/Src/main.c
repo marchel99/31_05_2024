@@ -33,6 +33,8 @@
 #include "user_interface.h"
 #include "globals.h"
 #include "ens160.h"
+#include "max.h"
+#include "bme280.h"
 
 /* USER CODE END Includes */
 
@@ -67,6 +69,9 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
+static struct bme280_t bme280;
+static struct bme280_t *p_bme280 = &bme280;
+
 DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi1_tx;
 extern DFRobot_ENS160_I2C ens160;
@@ -98,13 +103,14 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
+void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
 void read_and_print_ens160_data(void);
 
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 
+float read_soc(I2C_HandleTypeDef *hi2c);
 
 // void DisplayIcon(int iconIndex);
 
@@ -114,8 +120,8 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
 /* USER CODE BEGIN 0 */
 uint32_t loopCounter = 0; // Licznik impulsów pętli while
 
-
-
+#define BME280_OK 0
+#define BME280_I2C_ADDR 0x76
 
 
 
@@ -151,6 +157,13 @@ int __io_putchar(int ch)
 int main(void)
 {
 
+
+
+
+
+
+
+
   /* USER CODE BEGIN 1 */
 // Initialize the ENS160 sensor
 void init_ens160(void)
@@ -166,6 +179,33 @@ void init_ens160(void)
 
     DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
     DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
+}
+
+
+
+
+
+
+
+
+// I2C read function for BME280
+int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
+{
+    HAL_StatusTypeDef status;
+
+    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
+    {
+        printf("I2C device not ready!\r\n");
+        return -1;
+    }
+
+    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+    if (status != HAL_OK)
+    {
+        printf("I2C read error: %d\r\n", status);
+        return -1;
+    }
+    return 0;
 }
 
   /* USER CODE END 1 */
@@ -274,6 +314,25 @@ read_and_print_ens160_data();
 
 
 
+uint8_t bat_percentage =   read_soc(&hi2c1);
+
+
+    char buffer_bat_percentage[100];  
+
+
+Paint_DrawStringAt(&paint, 327, 10, "%",&Font20, COLORED);
+
+  snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage); 
+Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage,&Font20, COLORED);
+ //Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+
+
+
+
+
+
+
+
 
 
 
@@ -295,11 +354,15 @@ Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED
 
 
     char buffer_tvoc[20];  // Adjust the buffer size as needed
-  snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d ppm", tvoc); 
 
 
-Paint_DrawStringAt(&paint, 300, 80, "TVOC",&Font20, COLORED);
-Paint_DrawStringAt(&paint, 300, 100, buffer_tvoc,&Font20, COLORED);
+
+Paint_DrawStringAt(&paint, 306, 80, "TVOC",&Font20, COLORED);
+  snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc); 
+Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc,&Font20, COLORED);
+ Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+
+
 
 
 
@@ -312,9 +375,11 @@ Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLOR
 
  uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
      char buffer_CO2[300];
-  snprintf(buffer_CO2, sizeof(buffer_CO2), "%d ppm", co2);  
+  snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);  
 Paint_DrawStringAt(&paint, 20, 100, buffer_CO2,&Font20, COLORED);
-Paint_DrawStringAt(&paint, 20, 80, "CO2",&Font20, COLORED);
+Paint_DrawStringAt(&paint, 18, 80, "CO2",&Font20, COLORED);
+Paint_DrawStringAt(&paint, 64, 103, "ppm",&Font16, COLORED);
+
 
 
 Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
@@ -341,6 +406,39 @@ uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
 snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);  
 Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
 Paint_DrawStringAtCenter(&paint, center_y-20, "AQI:", &Font20, 400);
+
+
+int32_t temp_raw, pressure_raw, humidity_raw;
+bme280_set_power_mode(BME280_FORCED_MODE);
+
+ int32_t v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+        int32_t  v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+        int32_t  v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
+
+
+
+   char buffer_temp[100];
+ char buffer_press[100];
+ char buffer_hum[100];
+
+snprintf(buffer_temp, sizeof(buffer_temp), "%d", v_comp_temp_s32);  
+snprintf(buffer_press, sizeof(buffer_press), "%d", v_comp_press_u32);  
+
+snprintf(buffer_hum, sizeof(buffer_hum), "%d", v_comp_humidity_u32);  
+
+
+
+
+Paint_DrawStringAtCenter(&paint, center_y, v_comp_humidity_u32, &Font20, 300);
+Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
+
+
+
+
+
+
+
+
 
 //int r_height = 30;
 //Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
