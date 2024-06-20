@@ -63,32 +63,29 @@ DMA_HandleTypeDef hdma_spi1_tx;
 DMA_HandleTypeDef hdma_spi1_rx;
 
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+//volatile uint8_t buttonState_SW = 0; 
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
+
+volatile int currentIconIndex = 1; // Globalna zmienna do śledzenia wybranej ikony
+
 
 DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi1_tx;
 extern DFRobot_ENS160_I2C ens160;
 
-
 int counter = 1;
 int batteryLevel = 0;
 int updateBattery = 0;
 
+
+
 Epd epd;
 Paint paint;
-
-
-
-
-
-
 
 /* USER CODE END PV */
 
@@ -101,7 +98,6 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
@@ -114,6 +110,9 @@ float read_soc(I2C_HandleTypeDef *hi2c);
 
 // void DisplayIcon(int iconIndex);
 
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin); 
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,32 +122,57 @@ uint32_t loopCounter = 0; // Licznik impulsów pętli while
 #define BME280_OK 0
 #define BME280_I2C_ADDR 0x76
 
-
-
-
-
-
 // Redirect r to UART
 int __io_putchar(int ch)
 {
-    if (ch == '\n')
-    {
-        uint8_t ch2 = '\r';
-        HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
-    }
-    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return 1;
+  if (ch == '\n')
+  {
+    uint8_t ch2 = '\r';
+    HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
+  }
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return 1;
 }
+
+
+ void init_ens160(void)
+  {
+    DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
+
+    while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
+    {
+      printf("ENS160 initialization failed!\r\n");
+      HAL_Delay(3000);
+    }
+    printf("ENS160 initialized successfully!\r\n");
+
+    DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
+    DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
+  }
+
+  // I2C read function for BME280
+  int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t * reg_data, uint8_t len)
+  {
+    HAL_StatusTypeDef status;
+
+    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
+    {
+      printf("I2C device not ready!\r\n");
+      return -1;
+    }
+
+    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+    if (status != HAL_OK)
+    {
+      printf("I2C read error: %d\r\n", status);
+      return -1;
+    }
+    return 0;
+  }
+
+
+
 /* USER CODE END 0 */
-
-
-
-
-
-
-
-
-
 
 /**
   * @brief  The application entry point.
@@ -157,56 +181,9 @@ int __io_putchar(int ch)
 int main(void)
 {
 
-
-
-
-
-
-
-
   /* USER CODE BEGIN 1 */
-// Initialize the ENS160 sensor
-void init_ens160(void)
-{
-    DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
-
-    while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
-    {
-        printf("ENS160 initialization failed!\r\n");
-        HAL_Delay(3000);
-    }
-    printf("ENS160 initialized successfully!\r\n");
-
-    DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
-    DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
-}
-
-
-
-
-
-
-
-
-// I2C read function for BME280
-int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
-{
-    HAL_StatusTypeDef status;
-
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
-    {
-        printf("I2C device not ready!\r\n");
-        return -1;
-    }
-
-    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
-    if (status != HAL_OK)
-    {
-        printf("I2C read error: %d\r\n", status);
-        return -1;
-    }
-    return 0;
-}
+  // Initialize the ENS160 sensor
+ 
 
   /* USER CODE END 1 */
 
@@ -234,13 +211,12 @@ int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_
   MX_ADC1_Init();
   MX_SPI1_Init();
   MX_TIM2_Init();
-  MX_TIM3_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
   /* E-paper display setup */
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-  // HAL_TIM_Base_Start_IT(&htim3); // Uruchom TIM3 w trybie przerwań
+  
 
   if (Epd_Init(&epd) != 0)
   {
@@ -266,191 +242,131 @@ int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  int thickness = 2; // Grubość obiektów interfejsu
 
-int thickness = 2; // Grubość obiektów interfejsu
+  // Parametry obiektów
+  int width = 120;
+  int height = 90;
 
-// Parametry obiektów
-int width = 120;
-int height = 90;
+  // Obliczenia przesunięć
+  int offset_x = 260; // Przesunięcie poziome
+  int offset_y = 100; // Przesunięcie pionowe
 
-// Obliczenia przesunięć
-int offset_x = 260; // Przesunięcie poziome
-int offset_y = 100; // Przesunięcie pionowe
+  // Obliczanie środka ekranu
+  int screen_center_x = EPD_WIDTH / 2;
+  int screen_center_y = EPD_HEIGHT / 2;
 
-// Obliczanie środka ekranu
-int screen_center_x = EPD_WIDTH / 2;
-int screen_center_y = EPD_HEIGHT / 2;
+  int vertical_gap = 10; // Odległość pionowa między ćwiartkami
 
-int vertical_gap = 10; // Odległość pionowa między ćwiartkami
+  // Obliczanie pozycji ćwiartek względem środka ekranu
+  int x0_left = screen_center_x - offset_x / 2 - width / 2;
+  int x0_right = screen_center_x + offset_x / 2 - width / 2;
+  int y0_top = screen_center_y - offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
+  int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
 
-// Obliczanie pozycji ćwiartek względem środka ekranu
-int x0_left = screen_center_x - offset_x / 2 - width / 2;
-int x0_right = screen_center_x + offset_x / 2 - width / 2;
-int y0_top = screen_center_y - offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
-int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
-
-
-
-
-init_ens160();
+  init_ens160();
   while (1)
   {
-read_and_print_ens160_data();
+    read_and_print_ens160_data();
 
     uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
     int iconIndex = getIconIndex(encoderValue);
+      currentIconIndex = getIconIndex(encoderValue); 
     // Użycie zmiennej do śledzenia ostatniej wartości iconIndex
 
     Paint_Clear(&paint, UNCOLORED);
 
-
-
-
-
     DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
- 
 
+    uint8_t bat_percentage = read_soc(&hi2c1);
 
+    char buffer_bat_percentage[100];
 
+    Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
 
+    snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
+    Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
+    // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
 
-uint8_t bat_percentage =   read_soc(&hi2c1);
+    // Rysowanie linii poziomej
+    // Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
 
+    // Rysowanie obiektów
+    Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
 
-    char buffer_bat_percentage[100];  
+    Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
 
+    uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
 
-Paint_DrawStringAt(&paint, 327, 10, "%",&Font20, COLORED);
+    char buffer_tvoc[20]; // Adjust the buffer size as needed
 
-  snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage); 
-Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage,&Font20, COLORED);
- //Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+    Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
+    snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
+    Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc, &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 340, 102, "ppm", &Font16, COLORED);
 
+    Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
 
+    uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
+    char buffer_CO2[300];
+    snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
+    Paint_DrawStringAt(&paint, 20, 100, buffer_CO2, &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 18, 80, "CO2", &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 64, 103, "ppm", &Font16, COLORED);
 
+    Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
 
+    // Obliczanie środka geometrycznego czterech obiektów
+    int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
+    int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
 
+    // Ustawienia dla pierścienia
+    int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
 
+    // Rysowanie centralnego pierścienia
+    Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
 
+    uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
+    char buffer_AQI[100];
+    snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
+    Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
+    Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
 
+    /*
 
 
+    int32_t temp_raw, pressure_raw, humidity_raw;
+    bme280_set_power_mode(BME280_FORCED_MODE);
 
+     int32_t v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+            int32_t  v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+            int32_t  v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
 
 
 
+       char buffer_temp[100];
+     char buffer_press[100];
+     char buffer_hum[100];
 
-// Rysowanie linii poziomej
-//Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
+    snprintf(buffer_temp, sizeof(buffer_temp), "%d", v_comp_temp_s32);
+    snprintf(buffer_press, sizeof(buffer_press), "%d", v_comp_press_u32);
 
-// Rysowanie obiektów
-Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
+    snprintf(buffer_hum, sizeof(buffer_hum), "%d", v_comp_humidity_u32);
 
 
-Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
 
 
-    uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160); 
+    Paint_DrawStringAtCenter(&paint, center_y, v_comp_humidity_u32, &Font20, 300);
+    Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
 
 
-    char buffer_tvoc[20];  // Adjust the buffer size as needed
 
 
 
-Paint_DrawStringAt(&paint, 306, 80, "TVOC",&Font20, COLORED);
-  snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc); 
-Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc,&Font20, COLORED);
- Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+     */
 
-
-
-
-
-
-
-Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
-
-
-
-
- uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
-     char buffer_CO2[300];
-  snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);  
-Paint_DrawStringAt(&paint, 20, 100, buffer_CO2,&Font20, COLORED);
-Paint_DrawStringAt(&paint, 18, 80, "CO2",&Font20, COLORED);
-Paint_DrawStringAt(&paint, 64, 103, "ppm",&Font16, COLORED);
-
-
-
-Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
-
-
-
-// Obliczanie środka geometrycznego czterech obiektów
-int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
-int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
-
-// Ustawienia dla pierścienia
-int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
-
-// Rysowanie centralnego pierścienia
-Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
-
-
-
-
-
-
-uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);  
-   char buffer_AQI[100];
-snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);  
-Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
-Paint_DrawStringAtCenter(&paint, center_y-20, "AQI:", &Font20, 400);
-
-
-int32_t temp_raw, pressure_raw, humidity_raw;
-bme280_set_power_mode(BME280_FORCED_MODE);
-
- int32_t v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
-        int32_t  v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
-        int32_t  v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
-
-
-
-   char buffer_temp[100];
- char buffer_press[100];
- char buffer_hum[100];
-
-snprintf(buffer_temp, sizeof(buffer_temp), "%d", v_comp_temp_s32);  
-snprintf(buffer_press, sizeof(buffer_press), "%d", v_comp_press_u32);  
-
-snprintf(buffer_hum, sizeof(buffer_hum), "%d", v_comp_humidity_u32);  
-
-
-
-
-Paint_DrawStringAtCenter(&paint, center_y, v_comp_humidity_u32, &Font20, 300);
-Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
-
-
-
-
-
-
-
-
-
-//int r_height = 30;
-//Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
-
-
-
-
-
-
-
-
-
+    // int r_height = 30;
+    // Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
 
     DisplayBottomSection(&paint, iconIndex);
 
@@ -458,21 +374,18 @@ Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
 
     HAL_Delay(10); // Opóźnienie 1 ms
 
-
-  // Zwiększenie licznika impulsów
+    // Zwiększenie licznika impulsów
     loopCounter++;
 
     // Sprawdzanie, czy licznik osiągnął 180
     if (loopCounter >= 180)
     {
-        Epd_Clear(&epd); // Pełny reset ekranu
-        Paint_Clear(&paint, UNCOLORED);
-         Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+      Epd_Clear(&epd); // Pełny reset ekranu
+      Paint_Clear(&paint, UNCOLORED);
+      Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
-        loopCounter = 0; // Zresetowanie licznika impulsów
+      loopCounter = 0; // Zresetowanie licznika impulsów
     }
-
-
 
     /* USER CODE END WHILE */
 
@@ -746,51 +659,6 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM3_Init(void)
-{
-
-  /* USER CODE BEGIN TIM3_Init 0 */
-
-  /* USER CODE END TIM3_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM3_Init 1 */
-
-  /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM3_Init 2 */
-
-  /* USER CODE END TIM3_Init 2 */
-
-}
-
-/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -889,15 +757,64 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : EN_SW_Pin */
   GPIO_InitStruct.Pin = EN_SW_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(EN_SW_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == EN_SW_Pin)
+    {
+        printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+        switch (currentIconIndex)
+        {
+            case 1:
+                printf("Przechodzę do menu 1\n");
+                // Funkcja do obsługi menu 1
+                break;
+            case 2:
+                printf("Przechodzę do menu 2\n");
+                // Funkcja do obsługi menu 2
+                break;
+            case 3:
+                printf("Przechodzę do menu 3\n");
+                // Funkcja do obsługi menu 3
+                break;
+            case 4:
+                printf("Przechodzę do menu 4\n");
+                // Funkcja do obsługi menu 4
+                break;
+            case 5:
+                printf("Przechodzę do menu 5\n");
+                // Funkcja do obsługi menu 5
+                break;
+            case 6:
+                printf("Przechodzę do menu 6\n");
+                // Funkcja do obsługi menu 6
+                break;
+            case 7:
+                printf("Przechodzę do menu 7\n");
+                // Funkcja do obsługi menu 7
+                break;
+            case 8:
+                printf("Przechodzę do menu 8\n");
+                // Funkcja do obsługi menu 8
+                break;
+            default:
+                printf("Nieznane menu\n");
+                break;
+        }
+    }
+}
 
 /* USER CODE END 4 */
 
