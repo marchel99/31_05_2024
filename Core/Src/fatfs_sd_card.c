@@ -8,7 +8,7 @@
 #include "diskio.h"
 #include <fatfs_sd_card.h>
 
-uint16_t Timer1, Timer2;          /* 1ms Timer Counter */
+extern int16_t Timer1, Timer2;          /* 1ms Timer Counter */
 
 static volatile DSTATUS Stat = STA_NOINIT;  /* Disk Status */
 static uint8_t CardType;                    /* Type 0:MMC, 1:SDC, 2:Block addressing */

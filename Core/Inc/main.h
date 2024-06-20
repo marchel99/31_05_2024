@@ -72,6 +72,9 @@ void Error_Handler(void);
 #define EN_SW_Pin GPIO_PIN_12
 #define EN_SW_GPIO_Port GPIOA
 
+extern DMA_HandleTypeDef hdma_spi1_rx;
+extern DMA_HandleTypeDef hdma_spi1_tx;
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
