@@ -435,7 +435,7 @@ int main(void)
         // Read and print ADC values
         read_adc_values();
 
-        HAL_Delay(250);  // Delay for 250 milliseconds
+        HAL_Delay(1500);  // Delay for 250 milliseconds
     }
     /* USER CODE END WHILE */
 
