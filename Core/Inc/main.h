@@ -65,6 +65,8 @@ void Error_Handler(void);
 #define CS_GPIO_Port GPIOA
 #define BUSY_Pin GPIO_PIN_0
 #define BUSY_GPIO_Port GPIOB
+#define BUZZ_Pin GPIO_PIN_8
+#define BUZZ_GPIO_Port GPIOC
 #define CS2_Pin GPIO_PIN_9
 #define CS2_GPIO_Port GPIOA
 #define SW_Pin GPIO_PIN_12
