@@ -15,6 +15,7 @@ Author : Marchel99
 #define eINTDataDrdyEN 0x02
 #define eIntGprDrdyDIS 0x00
 extern UART_HandleTypeDef huart2;
+DFRobot_ENS160_I2C ens160;
 
 void DFRobot_ENS160_I2C_Init(DFRobot_ENS160_I2C *instance, I2C_HandleTypeDef *hi2c, uint8_t i2cAddr)
 {
@@ -105,4 +106,14 @@ void DFRobot_ENS160_SetTempAndHum(DFRobot_ENS160_I2C *instance, float ambientTem
     buf[2] = rh & 0xFF;
     buf[3] = (rh & 0xFF00) >> 8;
     HAL_I2C_Mem_Write(instance->hi2c, instance->i2cAddr << 1, ENS160_TEMP_IN_REG, I2C_MEMADD_SIZE_8BIT, buf, 4, HAL_MAX_DELAY);
+}
+
+
+void read_and_print_ens160_data(void)
+{
+  uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
+  uint16_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
+  uint16_t eco2 = DFRobot_ENS160_GetECO2(&ens160);
+
+  printf("AQI: %d, TVOC: %d ppb, eCO2: %d ppm\n", aqi, tvoc, eco2);
 }

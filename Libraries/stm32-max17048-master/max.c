@@ -1,8 +1,5 @@
 #include "max.h"
 #include "stm32l4xx_hal.h"
-//#include "i2c.h"
-
-// #include <math.h>
 
 void write_valrt_min(I2C_HandleTypeDef *hi2c, uint8_t valrt_min_value)
 {
@@ -13,7 +10,6 @@ void write_valrt_min(I2C_HandleTypeDef *hi2c, uint8_t valrt_min_value)
     data[0] = valrt_min_value;
 
     // Wysłanie wartości do rejestru VALRT.MIN
-
     status = HAL_I2C_Mem_Write(hi2c, I2C_DEFAULT_ADDRESS << 1, 0x14, I2C_MEMADD_SIZE_8BIT, data, sizeof(data), HAL_MAX_DELAY);
 
     // Sprawdzenie, czy operacja się powiodła
@@ -31,7 +27,6 @@ void write_reset(I2C_HandleTypeDef *hi2c, uint8_t reset_value)
     data[0] = reset_value;
 
     // Wysłanie wartości do rejestru VRESET
-
     status = HAL_I2C_Mem_Write(hi2c, I2C_DEFAULT_ADDRESS << 1, 0x18, I2C_MEMADD_SIZE_8BIT, data, sizeof(data), HAL_MAX_DELAY);
 
     // Sprawdzenie, czy operacja się powiodła
@@ -102,8 +97,7 @@ float read_voltage(I2C_HandleTypeDef *hi2c)
     }
 
     raw_voltage = (data[0] << 8) | data[1];
-
-    voltage = raw_voltage * 78.125e-6; // 78.125 µV per LSB
+    voltage = raw_voltage * 78.125e-6f; // 78.125 µV per LSB
 
     return voltage;
 }
@@ -122,7 +116,7 @@ float read_current(I2C_HandleTypeDef *hi2c, float resistance)
     }
 
     raw_voltage = (data[0] << 8) | data[1];
-    voltage = raw_voltage * 78.125e-6; // 78.125 µV per LSB
+    voltage = raw_voltage * 78.125e-6f; // 78.125 µV per LSB
 
     if (resistance > 0)
     {

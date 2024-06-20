@@ -47,5 +47,5 @@ uint8_t DFRobot_ENS160_GetAQI(DFRobot_ENS160_I2C *instance);
 uint16_t DFRobot_ENS160_GetTVOC(DFRobot_ENS160_I2C *instance);
 uint16_t DFRobot_ENS160_GetECO2(DFRobot_ENS160_I2C *instance);
 void DFRobot_ENS160_SetTempAndHum(DFRobot_ENS160_I2C *instance, float ambientTemp, float relativeHumidity);
-
+void read_and_print_ens160_data(void);
 #endif

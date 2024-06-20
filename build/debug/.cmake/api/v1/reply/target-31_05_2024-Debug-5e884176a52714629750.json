@@ -97,10 +97,6 @@
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-epd4in2b-master"
 				},
 				{
-					"backtrace" : 3,
-					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/fatfs_sd"
-				},
-				{
 					"backtrace" : 2,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/cmake/stm32cubemx/../../FATFS/Target"
 				},
@@ -238,10 +234,6 @@
 				{
 					"backtrace" : 3,
 					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/stm32-epd4in2b-master"
-				},
-				{
-					"backtrace" : 3,
-					"path" : "D:/ST/STM32CubeIDE_1.15.1/STM32CubeIDE/D/Users/mrchl/STM32CubeIDE/workspace_1.15.1/31_05_2024/Libraries/fatfs_sd"
 				},
 				{
 					"backtrace" : 2,
@@ -448,7 +440,7 @@
 		{
 			"backtrace" : 4,
 			"compileGroupIndex" : 0,
-			"path" : "Libraries/fatfs_sd/fatfs_sd.c",
+			"path" : "Core/Src/fatfs_sd_card.c",
 			"sourceGroupIndex" : 0
 		},
 		{

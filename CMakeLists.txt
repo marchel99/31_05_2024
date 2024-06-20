@@ -52,7 +52,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font20.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font24.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/imagedata.c
-    ${CMAKE_SOURCE_DIR}/Libraries/fatfs_sd/fatfs_sd.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/fatfs_sd_card.c
 )
 
 # Add include paths
@@ -63,7 +63,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-sen05xx-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-max17048-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master
-    ${CMAKE_SOURCE_DIR}/Libraries/fatfs_sd
+
   
 )
 
