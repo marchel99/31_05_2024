@@ -12,7 +12,7 @@ uint32_t lastDebounceTime = 0;
 
 int currentDisplayMode = COLORED;
 
-extern Paint paint_top;
+extern Paint paint;
 extern Epd epd;
 
 void UI_HandleButtonPress_1(void)
@@ -49,7 +49,7 @@ void UI_HandleButtonPress_7(void)
 {
     printf("7 przycisk jest wcisniety!\n");
     Epd_Clear(&epd);
-    Epd_DisplayFull(&epd, Paint_GetImage(&paint_top));
+    Epd_DisplayFull(&epd, Paint_GetImage(&paint));
     HAL_Delay(100);
 }
 
@@ -58,46 +58,44 @@ void UI_HandleButtonPress_8(void)
     printf("8 przycisk jest wcisniety!\n");
 }
 
-void DisplayTopSection(Paint *paint_top, int iconIndex, uint32_t encoderValue, int counter, uint8_t batteryLevel)
+void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int counter, uint8_t batteryLevel)
 {
     char buffer_top[100];
     snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%d", iconIndex, encoderValue);
-    Paint_DrawStringAt(paint_top, 150, 5, buffer_top, &Font20, COLORED);
+    Paint_DrawStringAt(paint, 150, 5, buffer_top, &Font20, COLORED);
 
     snprintf(buffer_top, sizeof(buffer_top), "%d", counter);
-    Paint_DrawStringAt(paint_top, 10, 5, buffer_top, &Font20, COLORED);
+    Paint_DrawStringAt(paint, 10, 5, buffer_top, &Font20, COLORED);
 
-    DrawBattery(paint_top, 350, 2, 32, 24, COLORED);
-    DrawBatteryLevel(paint_top, 350, 2, 30, 24, batteryLevel, COLORED);
+    DrawBattery(paint, 350, 2, 32, 24, COLORED);
+    DrawBatteryLevel(paint, 350, 2, 30, 24, batteryLevel, COLORED);
 }
 
-void DisplayMiddleSection(Paint *paint_top)
+void DisplayMiddleSection(Paint *paint)
 {
-    // interfejs
-    Paint_DrawStringAt(paint_top, 10, 35, "", &Font16, COLORED);
-    Paint_DrawRoundedRectangle(paint_top, 10, 50, 190, 170, 10, COLORED);
-    Paint_DrawRoundedRectangle(paint_top, 210, 50, 390, 170, 10, COLORED);
 
-    // Tekst w lewym prostokącie
-    Paint_DrawStringAt(paint_top, 20, 60, "AQI: 1", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 20, 80, "TVOC: 44ppm", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 20, 100, "HCHO: 0.04ppm", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 20, 120, "CO: <5ppm", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 20, 140, "CO2: 412ppm", &Font16, COLORED);
 
-    // Tekst w prawym prostokącie
-    Paint_DrawStringAt(paint_top, 220, 60, "TEMP: 22 C", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 220, 80, "HUM: 51%", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 220, 100, "PRESS: 941 hPa", &Font16, COLORED);
-    Paint_DrawStringAt(paint_top, 220, 120, "DP: 12 C", &Font16, COLORED);
+
+
+// Wywołanie funkcji 10 jednostek poniżej y0_bottom
+//Paint_Draw3RectanglesCenter(&paint, y0_bottom + height + 10, r_height, vertical_gap, thickness, COLORED, x0_left, x0_right + width);
+
+// Rysowanie linii poziomej
+//Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 10 + r_height + vertical_gap, x0_right + width, y0_bottom + height + 10 + r_height + vertical_gap, thickness, COLORED);
+
+// Rysowanie pionowej linii
+
+
+
+
 }
 
 
 
-void DisplayBottomSection(Paint *paint_top, int iconIndex)
+void DisplayBottomSection(Paint *paint, int iconIndex)
 {
-    int icon_height = 230;
-    int desc_offset = 20;
+    int icon_height = 245;
+    int desc_offset = 11;
     const char *iconDescriptions[] = {
         "Wykresy",    // Opis dla ikony 1
         "Wilgotnosc", // Opis dla ikony 2
@@ -115,34 +113,34 @@ void DisplayBottomSection(Paint *paint_top, int iconIndex)
     }
 
     // Wyświetlanie opisu ikony nad bitmapą
-    Paint_DrawStringAtCenter(paint_top, icon_height - desc_offset, iconDescriptions[iconIndex - 1], &Font20, 400);
+    Paint_DrawStringAtCenter(paint, icon_height - desc_offset, iconDescriptions[iconIndex - 1], &Font20, 400);
     switch (iconIndex)
     {
 
     case 1:
-        Paint_DrawBitmap(paint_top, icon_temp, 5, icon_height, 48, 48, COLORED);
-        Paint_DrawStringAtCenter(paint_top, icon_height - desc_offset, "Wykresy", &Font20, 400);
+        Paint_DrawBitmap(paint, icon_temp, 5, icon_height, 48, 48, COLORED);
+        Paint_DrawStringAtCenter(paint, icon_height - desc_offset, "Wykresy", &Font20, 400);
         break;
     case 2:
-        Paint_DrawBitmap(paint_top, icon_humi, 55, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_humi, 55, icon_height, 48, 48, COLORED);
         break;
     case 3:
-        Paint_DrawBitmap(paint_top, icon_sun, 105, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_sun, 105, icon_height, 48, 48, COLORED);
         break;
     case 4:
-        Paint_DrawBitmap(paint_top, icon_leaf, 155, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_leaf, 155, icon_height, 48, 48, COLORED);
         break;
     case 5:
-        Paint_DrawBitmap(paint_top, icon_sunset, 205, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_sunset, 205, icon_height, 48, 48, COLORED);
         break;
     case 6:
-        Paint_DrawBitmap(paint_top, icon_sunrise, 255, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_sunrise, 255, icon_height, 48, 48, COLORED);
         break;
     case 7:
-        Paint_DrawBitmap(paint_top, icon_wind, 305, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_wind, 305, icon_height, 48, 48, COLORED);
         break;
     case 8:
-        Paint_DrawBitmap(paint_top, icon_settings, 355, icon_height, 48, 48, COLORED);
+        Paint_DrawBitmap(paint, icon_settings, 355, icon_height, 48, 48, COLORED);
         break;
     default:
         break;

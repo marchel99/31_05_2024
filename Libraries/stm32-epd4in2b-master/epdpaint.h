@@ -51,7 +51,7 @@ void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, 
 
 void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth);
 
-void DrawTopPanel(Paint* paint_top, int counter, int batteryLevel, uint32_t encoderValue, int iconIndex);
+void DrawTopPanel(Paint* paint, int counter, int batteryLevel, uint32_t encoderValue, int iconIndex);
 void DrawBottomPanel(Paint* paint, int iconIndex);
 
 
@@ -62,5 +62,26 @@ int Paint_GetHeight(Paint* paint);
 void Paint_SetRotate(Paint* paint, int rotate);
 int Paint_GetRotate(Paint* paint);
 unsigned char* Paint_GetImage(Paint* paint);
+
+
+
+
+void Paint_DrawLineWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored);
+
+void Paint_DrawRectangleWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored);
+void Paint_Draw3RectanglesCenter(Paint *paint, int y0_bottom, int height, int distance, int thickness, int colored, int x0_left, int x0_right);
+void Paint_Universal_Ring(Paint *paint, int x0, int y0, int width, int height, int thickness, int colored, int type);
+
+void Paint_DrawRing(Paint *paint, int x0, int y0, int radius, int thickness, int colored);
+
+
+
+
+
+
+
+
+
+
 
 #endif /* _EPDPAINT_H_ */

@@ -71,7 +71,12 @@ int updateBattery = 0;
 
 Epd epd;
 Paint paint;
-Paint paint_top;
+
+
+
+
+
+
 
 /* USER CODE END PV */
 
@@ -93,7 +98,7 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint32_t loopCounter = 0; // Licznik impulsów pętli while
 /* USER CODE END 0 */
 
 /**
@@ -150,17 +155,44 @@ int main(void)
   unsigned char top_menu[(400 * 300) / 8 + 100] = {0}; // Bufor dla całego gornego  paska
 
   // width should be the multiple of 8
-  Paint_Init(&paint_top, top_menu, 400, 300);
-  Paint_Clear(&paint_top, UNCOLORED);
+  Paint_Init(&paint, top_menu, 400, 300);
+  Paint_Clear(&paint, UNCOLORED);
 
   // Początkowe wypełnienie ekranu
 
-  Epd_DisplayFull(&epd, Paint_GetImage(&paint_top));
+  Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+
+int thickness = 2; // Grubość obiektów interfejsu
+
+// Parametry obiektów
+int width = 120;
+int height = 90;
+
+// Obliczenia przesunięć
+int offset_x = 260; // Przesunięcie poziome
+int offset_y = 100; // Przesunięcie pionowe
+
+// Obliczanie środka ekranu
+int screen_center_x = EPD_WIDTH / 2;
+int screen_center_y = EPD_HEIGHT / 2;
+
+int vertical_gap = 10; // Odległość pionowa między ćwiartkami
+
+// Obliczanie pozycji ćwiartek względem środka ekranu
+int x0_left = screen_center_x - offset_x / 2 - width / 2;
+int x0_right = screen_center_x + offset_x / 2 - width / 2;
+int y0_top = screen_center_y - offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
+int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
+
+
+
+
 
   while (1)
   {
@@ -169,15 +201,78 @@ int main(void)
     int iconIndex = getIconIndex(encoderValue);
     // Użycie zmiennej do śledzenia ostatniej wartości iconIndex
 
-    Paint_Clear(&paint_top, UNCOLORED);
+    Paint_Clear(&paint, UNCOLORED);
 
-    DisplayTopSection(&paint_top, iconIndex, encoderValue, counter++, batteryLevel);
-    DisplayMiddleSection(&paint_top);
-    DisplayBottomSection(&paint_top, iconIndex);
 
-    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint_top), 0, 0, 400, 300);
 
-    HAL_Delay(1); // Opóźnienie 1 ms
+
+
+    DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+// Rysowanie linii poziomej
+//Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
+
+// Rysowanie obiektów
+Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
+Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
+Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
+Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
+
+// Obliczanie środka geometrycznego czterech obiektów
+int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
+int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
+
+// Ustawienia dla pierścienia
+int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
+
+// Rysowanie centralnego pierścienia
+Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
+ 
+//int r_height = 30;
+//Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
+
+
+
+
+
+
+
+
+
+
+    DisplayBottomSection(&paint, iconIndex);
+
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+    HAL_Delay(10); // Opóźnienie 1 ms
+
+
+  // Zwiększenie licznika impulsów
+    loopCounter++;
+
+    // Sprawdzanie, czy licznik osiągnął 180
+    if (loopCounter >= 180)
+    {
+        Epd_Clear(&epd); // Pełny reset ekranu
+        Paint_Clear(&paint, UNCOLORED);
+         Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+        loopCounter = 0; // Zresetowanie licznika impulsów
+    }
+
+
 
     /* USER CODE END WHILE */
 
@@ -384,7 +479,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

@@ -678,7 +678,7 @@ void Epd_Display_Partial_DMA(Epd *epd, unsigned char *image, unsigned int x_star
     y_end -= 1;
 
     // Resetowanie e-papieru tylko co drugie wywołanie funkcji
-    if (call_count % 60 == 0) {
+    if (call_count % 120 == 0) {
         Epd_Reset(epd); 
     }
     call_count++;
