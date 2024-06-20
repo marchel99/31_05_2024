@@ -41,9 +41,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 #define BME280_OK 0
 #define BME280_I2C_ADDR 0x76
 #define I2C_DEFAULT_ADDRESS 0x36
+
+#define BUZZER_Pin GPIO_PIN_8
+#define BUZZER_GPIO_Port GPIOC
+#define BUZZER_TOGGLE_INTERVAL 15 // Buzzer will toggle every 5 measurements
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,6 +73,8 @@ extern const unsigned char temperature_icon[];
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
 static uint32_t measurement_number = 1;
+
+static uint32_t buzzer_counter = 0; // Counter for buzzer activation
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,13 +87,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
-void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_ADC1_Init(void);
-static void MX_SPI1_Init(void);
-static void MX_TIM2_Init(void);
+
 void process_SD_card(const char *data);
 void I2C_Scan(void);
 void init_ens160(void);
@@ -99,6 +100,7 @@ float read_voltage(I2C_HandleTypeDef *hi2c);
 float read_soc(I2C_HandleTypeDef *hi2c);
 void print_sensor_data_bme280(struct bme280_t *bme280);
 void read_adc_values(void);
+void toggle_buzzer(void); 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -161,6 +163,15 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
     }
     return 0;
 }
+
+
+// Function to toggle the buzzer
+void toggle_buzzer(void)
+{
+    HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
+}
+
+
 
 // Function to read and print BME280 sensor data
 void print_sensor_data_bme280(struct bme280_t *bme280)
@@ -405,6 +416,13 @@ int main(void)
         print_sensor_data_bme280(p_bme280);
         print_sensor_data();
         read_and_print_ens160_data();
+
+   // Check if it's time to toggle the buzzer
+        if (measurement_number % BUZZER_TOGGLE_INTERVAL == 0)
+        {
+            toggle_buzzer();
+        }
+
 
         HAL_Delay(100);  // Delay for 100 milliseconds
 
