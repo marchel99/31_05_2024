@@ -69,6 +69,12 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 //volatile uint8_t buttonState_SW = 0; 
+
+volatile uint8_t buzzer_active = 0;
+volatile uint32_t last_interrupt_time = 0;
+const uint32_t debounce_time = 200; // czas tłumienia drgań w ms
+
+
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
 
@@ -823,55 +829,69 @@ static void MX_GPIO_Init(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == EN_SW_Pin)
-
     {
-        printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
-          HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET); // Włączenie BUZZ
-        HAL_Delay(50); // Opóźnienie 100 ms
-        HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_RESET); 
-
-
-
-        switch (currentIconIndex)
+        uint32_t current_time = HAL_GetTick();
+        if ((current_time - last_interrupt_time) > debounce_time)
         {
-            case 1:
-                printf("Przechodzę do menu 1\n");
-                // Funkcja do obsługi menu 1
-                break;
-            case 2:
-                printf("Przechodzę do menu 2\n");
-                // Funkcja do obsługi menu 2
-                break;
-            case 3:
-                printf("Przechodzę do menu 3\n");
-                // Funkcja do obsługi menu 3
-                break;
-            case 4:
-                printf("Przechodzę do menu 4\n");
-                // Funkcja do obsługi menu 4
-                break;
-            case 5:
-                printf("Przechodzę do menu 5\n");
-                // Funkcja do obsługi menu 5
-                break;
-            case 6:
-                printf("Przechodzę do menu 6\n");
-                // Funkcja do obsługi menu 6
-                break;
-            case 7:
-                printf("Przechodzę do menu 7\n");
-                // Funkcja do obsługi menu 7
-                break;
-            case 8:
-                printf("Przechodzę do menu 8\n");
-                // Funkcja do obsługi menu 8
-                break;
-            default:
-                printf("Nieznane menu\n");
-                break;
+            last_interrupt_time = current_time;
+
+            printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+
+            // Włączenie BUZZ
+            HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET);
+
+            // Uruchomienie timera, aby wyłączyć BUZZ po 100 ms
+            __HAL_TIM_SET_COUNTER(&htim3, 0);
+            HAL_TIM_Base_Start_IT(&htim3);
+
+            switch (currentIconIndex)
+            {
+                case 1:
+                    printf("Przechodzę do menu 1\n");
+                    break;
+                case 2:
+                    printf("Przechodzę do menu 2\n");
+                    break;
+                case 3:
+                    printf("Przechodzę do menu 3\n");
+                    break;
+                case 4:
+                    printf("Przechodzę do menu 4\n");
+                    break;
+                case 5:
+                    printf("Przechodzę do menu 5\n");
+                    break;
+                case 6:
+                    printf("Przechodzę do menu 6\n");
+                    break;
+                case 7:
+                    printf("Przechodzę do menu 7\n");
+                    break;
+                case 8:
+                    printf("Przechodzę do menu 8\n");
+                    break;
+                default:
+                    printf("Nieznane menu\n");
+                    break;
+            }
         }
     }
 }
+
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM3)
+  {
+    HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_RESET);
+    HAL_TIM_Base_Stop_IT(htim);
+  }
+}
+
+
+
+
 
 /* USER CODE END 4 */
 
