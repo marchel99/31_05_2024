@@ -79,8 +79,7 @@ DMA_HandleTypeDef hdma_spi1_tx;
 extern DFRobot_ENS160_I2C ens160;
 
 int counter = 1;
-int batteryLevel = 0;
-int updateBattery = 0;
+float batteryLevel = 0;
 
 
 
@@ -286,6 +285,8 @@ int main(void)
 
     snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
     Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
+    batteryLevel = bat_percentage;
+
     // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
 
     // Rysowanie linii poziomej

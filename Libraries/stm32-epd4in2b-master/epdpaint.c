@@ -281,15 +281,27 @@ int Paint_GetRotate(Paint* paint) {
 unsigned char* Paint_GetImage(Paint* paint) {
     return paint->image;
 }
-
-void DrawBattery(Paint *paint, int x, int y, int width, int height, int colored) {
+void DrawBattery(Paint *paint, int x, int y, int width, int height, float percentage, int colored) {
     // Główny prostokąt baterii
     Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
+
     // Mały prostokąt jako złącze baterii
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
+
+    // Definiowanie offsetu
+    int offset = 2;
+
+    // Obliczanie szerokości wypełnienia odpowiadającej poziomowi naładowania
+    int fillWidth = (width - 2 * offset) * percentage / 100;
+
+    // Rysowanie wypełnienia baterii z offsetem
+    Paint_DrawFilledRectangle(paint, x + offset, y + offset, x + offset + fillWidth, y + height - offset, colored); // Wypełnienie prostokąta wewnątrz baterii
 }
+
+
+
 void DrawBatteryLevel(Paint *paint, int x, int y, int width, int height, int level, int colored) {
     // Szerokość jednego poziomu naładowania
     int levelWidth = (width - 4) / 3; // -4 to marginesy
@@ -400,7 +412,7 @@ void DrawBottomPanel(Paint* paint, int iconIndex) {
 
 
 
-void DrawTopPanel(Paint* paint, int counter, int batteryLevel, uint32_t encoderValue, int iconIndex) {
+void DrawTopPanel(Paint* paint, int counter, float batteryLevel, uint32_t encoderValue, int iconIndex) {
     char buffer_top[100];
     
     // Wyświetlanie informacji o ikonie i wartości enkodera
@@ -412,8 +424,8 @@ void DrawTopPanel(Paint* paint, int counter, int batteryLevel, uint32_t encoderV
     Paint_DrawStringAt(paint, 10, 5, buffer_top, &Font20, COLORED);
 
     // Rysowanie poziomu baterii
-    DrawBattery(paint, 350, 2, 32, 24, COLORED);
-    DrawBatteryLevel(paint, 350, 2, 30, 24, batteryLevel, COLORED);
+    DrawBattery(paint, 350, 2, 32, 70,batteryLevel, COLORED);
+   
 }
 
 

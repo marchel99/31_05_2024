@@ -67,8 +67,8 @@ void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int c
     snprintf(buffer_top, sizeof(buffer_top), "%d", counter);
     Paint_DrawStringAt(paint, 10, 5, buffer_top, &Font20, COLORED);
 
-    DrawBattery(paint, 350, 2, 32, 24, COLORED);
-    DrawBatteryLevel(paint, 350, 2, 30, 24, batteryLevel, COLORED);
+    DrawBattery(paint, 350, 2, 32, 24, batteryLevel,COLORED);
+  //  DrawBatteryLevel(paint, 350, 2, 30, 24, batteryLevel, COLORED);
 }
 
 void DisplayMiddleSection(Paint *paint)
