@@ -152,16 +152,16 @@ int getIconIndex(uint32_t encoderValue)
     static int iconIndex = 1;        // Zakładam, że startujesz od ikony 1
 
     // Oblicz różnicę wartości enkodera
-    int delta = (int)(encoderValue / 2) - lastEncoderValue;
+    int delta = (int)(encoderValue ) - lastEncoderValue;
 
     // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
-    if (abs(delta) > 4)
+    if (abs(delta) > 12)
     {                                               // Ignorowanie dużych zmian (np. teleportacji)
-        lastEncoderValue = (int)(encoderValue / 2); // Mimo to aktualizujemy lastEncoderValue
+        lastEncoderValue = (int)(encoderValue ); // Mimo to aktualizujemy lastEncoderValue
         return iconIndex;
     }
 
-    lastEncoderValue = (int)(encoderValue / 2);
+    lastEncoderValue = (int)(encoderValue );
 
     // Obsługa ruchów
     if (delta > 0)
