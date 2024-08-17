@@ -9,7 +9,7 @@
  * Copyright (c) 2024 STMicroelectronics.
  * All rights reserved.
  *
- * This software is licensed under terms that can be found in the LICENSE file
+ * This software is licensed pod terms that can be found in the LICENSE file
  * in the root directory of this software component.
  * If no LICENSE file comes with this software, it is provided AS-IS.
  *
@@ -23,15 +23,19 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "epd4in2b.h"
-#include "imagedata.h"
 #include "epdpaint.h"
 #include "fonts.h"
-#include "bme280.h"
+#include "imagedata.h"
+#include "user_interface.h"
+#include "globals.h"
 #include "ens160.h"
 #include "max.h"
+#include "bme280.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,13 +46,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define BME280_OK 0
-#define BME280_I2C_ADDR 0x76
-#define I2C_DEFAULT_ADDRESS 0x36
-
-#define BUZZER_Pin GPIO_PIN_8
-#define BUZZER_GPIO_Port GPIOC
-#define BUZZER_TOGGLE_INTERVAL 15 // Buzzer will toggle every 5 measurements
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,13 +68,31 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-extern DFRobot_ENS160_I2C ens160;
-extern const unsigned char temperature_icon[];
+//volatile uint8_t buttonState_SW = 0; 
+
+volatile uint8_t buzzer_active = 0;
+volatile uint32_t last_interrupt_time = 0;
+const uint32_t debounce_time = 200; // czas tłumienia drgań w ms
+
+
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
-static uint32_t measurement_number = 1;
 
-static uint32_t buzzer_counter = 0; // Counter for buzzer activation
+volatile int currentIconIndex = 1; // Globalna zmienna do śledzenia wybranej ikony
+
+
+DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
+extern DFRobot_ENS160_I2C ens160;
+
+int counter = 1;
+float batteryLevel = 0;
+
+
+
+Epd epd;
+Paint paint;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -91,261 +106,78 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
-
-void process_SD_card(const char *data);
-void I2C_Scan(void);
+void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
 void read_and_print_ens160_data(void);
-void print_sensor_data(void);
-void user_delay_ms(uint32_t period);
+
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
-float read_voltage(I2C_HandleTypeDef *hi2c);
+
 float read_soc(I2C_HandleTypeDef *hi2c);
-void print_sensor_data_bme280(struct bme280_t *bme280);
-void read_adc_values(void);
-void toggle_buzzer(void); 
+
+// void DisplayIcon(int iconIndex);
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin); 
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint32_t loopCounter = 0; // Licznik impulsów pętli while
 
-// Redirect printf to UART
+#define BME280_OK 0
+#define BME280_I2C_ADDR 0x76
+
+// Redirect r to UART
 int __io_putchar(int ch)
 {
-    if (ch == '\n')
-    {
-        uint8_t ch2 = '\r';
-        HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
-    }
-    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return 1;
-}
-
-// Delay function for BME280
-void user_delay_ms(uint32_t period)
-{
-    HAL_Delay(period);
-}
-
-// I2C read function for BME280
-int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
-{
-    HAL_StatusTypeDef status;
-
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
-    {
-        printf("I2C device not ready!\r\n");
-        return -1;
-    }
-
-    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
-    if (status != HAL_OK)
-    {
-        printf("I2C read error: %d\r\n", status);
-        return -1;
-    }
-    return 0;
-}
-
-// I2C write function for BME280
-int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
-{
-    HAL_StatusTypeDef status;
-
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
-    {
-        printf("I2C device not ready!\r\n");
-        return -1;
-    }
-
-    status = HAL_I2C_Mem_Write(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
-    if (status != HAL_OK)
-    {
-        printf("I2C write error: %d\r\n", status);
-        return -1;
-    }
-    return 0;
+  if (ch == '\n')
+  {
+    uint8_t ch2 = '\r';
+    HAL_UART_Transmit(&huart2, &ch2, 1, HAL_MAX_DELAY);
+  }
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return 1;
 }
 
 
-// Function to toggle the buzzer
-void toggle_buzzer(void)
-{
-    HAL_GPIO_TogglePin(BUZZER_GPIO_Port, BUZZER_Pin);
-}
-
-
-
-// Function to read and print BME280 sensor data
-void print_sensor_data_bme280(struct bme280_t *bme280)
-{
-    int32_t temp_raw, pressure_raw, humidity_raw;
-
-    // Set the sensor to FORCED_MODE for a single measurement
-    bme280_set_power_mode(BME280_FORCED_MODE);
-    user_delay_ms(100); // Add delay after setting the mode
-
-    if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
-    {
-        int32_t v_comp_temp_s32;
-        uint32_t v_comp_press_u32;
-        uint32_t v_comp_humidity_u32;
-
-        v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
-        v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
-        v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
-
-        float imp_temp = ((float)v_comp_temp_s32 / 100);
-        float imp_press = ((float)v_comp_press_u32 / 100);
-        float imp_humi = ((float)v_comp_humidity_u32 / 1024);
-        float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
-
-        char raw_buffer[200];
-        const char separator[] = "________________________________________________________________________\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
-        int length = snprintf(raw_buffer, sizeof(raw_buffer), "ENS160_Status: %d, Raw Temp: %ld, Raw Pressure: %ld, Raw Humidity: %ld\r\n",
-                              DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
-        HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
-
-        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
-
-        char display_buffer[200];
-        length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
-                          imp_temp, imp_press, imp_humi, dewpt);
-        HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
-    }
-    else
-    {
-        const char error_message[] = "Sensor read error!\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
-    }
-}
-
-// Function to read and print voltage and SoC
-void print_sensor_data(void)
-{
-    float voltage_battery = read_voltage(&hi2c1);
-    float soc = read_soc(&hi2c1);
-
-    printf("Voltage: %.3f V, SoC: %.2f %%\r\n", voltage_battery, soc);
-
-    // Prepare CSV data
-    char data_buffer[256];
-    snprintf(data_buffer, sizeof(data_buffer), "%lu,%.3f,%.2f\r\n", measurement_number++, voltage_battery, soc);
-
-    // Save data to SD card
-    process_SD_card(data_buffer);
-}
-
-// Initialize the ENS160 sensor
-void init_ens160(void)
-{
+ void init_ens160(void)
+  {
     DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
 
     while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
     {
-        printf("ENS160 initialization failed!\r\n");
-        HAL_Delay(3000);
+      printf("ENS160 initialization failed!\r\n");
+      HAL_Delay(3000);
     }
     printf("ENS160 initialized successfully!\r\n");
 
     DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
     DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
-}
+  }
 
-// Function to scan for I2C devices
-void I2C_Scan(void)
-{
-    char buffer[25];
-    uint8_t i2c_devices = 0;
+  // I2C read function for BME280
+  int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t * reg_data, uint8_t len)
+  {
+    HAL_StatusTypeDef status;
 
-    if (i2c_devices == 0)
+    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
     {
-        printf("No I2C devices found\r\n");
-    }
-    else
-    {
-        printf("I2C scan completed\r\n");
-    }
-}
-
-// Save data to the SD card
-void process_SD_card(const char *data)
-{
-    FATFS FatFs;  // Fatfs handle
-    FIL fil;      // File handle
-    FRESULT fres; // Result after operations
-
-    // Mount the SD card
-    fres = f_mount(&FatFs, "", 1); // 1=mount now
-    if (fres != FR_OK)
-    {
-        printf("Failed to mount SD card: (%i)\r\n", fres);
-        return;
-    }
-    printf("SD card mounted successfully!!!\r\n");
-
-    // Open the file for writing
-    printf("Opening file 'sensor_data.csv' for writing\n");
-    fres = f_open(&fil, "sensor_data.csv", FA_WRITE | FA_OPEN_APPEND);
-    if (fres != FR_OK)
-    {
-        printf("Error opening file (FA_WRITE | FA_OPEN_APPEND): (%i)\r\n", fres);
-        f_mount(NULL, "", 0);
-        return;
+      printf("I2C device not ready!\r\n");
+      return -1;
     }
 
-    printf("Writing data to the file...\r\n");
-    // Write data
-    UINT bytes_written;
-    fres = f_write(&fil, data, strlen(data), &bytes_written);
-    if (fres != FR_OK || bytes_written != strlen(data))
+    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+    if (status != HAL_OK)
     {
-        printf("File write error, written %u bytes\n", bytes_written);
-        f_close(&fil);
-        f_mount(NULL, "", 0);
-        return;
+      printf("I2C read error: %d\r\n", status);
+      return -1;
     }
-    printf("Data saved: %s\n", data);
+    return 0;
+  }
 
-    // Close the file after writing
-    fres = f_close(&fil);
-    if (fres != HAL_OK)
-    {
-        printf("File close error after writing: (%i)\r\n", fres);
-        f_mount(NULL, "", 0);
-        return;
-    }
 
-    // Unmount the card
-    f_mount(NULL, "", 0);
-    printf("SD card unmounted successfully!!!\r\n");
-}
-
-// Function to read ADC values and print them
-void read_adc_values(void)
-{
-    uint32_t value[2];
-    float voltage[2];
-
-    HAL_ADC_Start(&hadc1);
-
-    // Conversion for channel 0
-    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-    value[0] = HAL_ADC_GetValue(&hadc1);
-
-    // Conversion for channel 1
-    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
-    value[1] = HAL_ADC_GetValue(&hadc1);
-
-    // Convert ADC values to voltage
-    voltage[0] = 3.3f * value[0] / 4095.0f;
-    voltage[1] = 3.3f * value[1] / 4095.0f;
-
-    printf("CO value=%lu (%.3f V), \nHCHO value=%lu (%.3f V)\n", value[0], voltage[0], value[1], voltage[1]);
-}
 
 /* USER CODE END 0 */
 
@@ -357,7 +189,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-    printf("Start!\n\n");
+  // Initialize the ENS160 sensor
+ 
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -366,12 +200,14 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
+
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -385,68 +221,188 @@ int main(void)
   MX_FATFS_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-    HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-    HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);  // Calibrate ADC
 
-    I2C_Scan();
-    init_ens160();
+  /* E-paper display setup */
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
-    p_bme280->bus_write = user_i2c_write;
-    p_bme280->bus_read = user_i2c_read;
-    p_bme280->delay_msec = user_delay_ms;
-    p_bme280->dev_addr = BME280_I2C_ADDR;
+  
 
-    if (bme280_init(p_bme280) != BME280_OK)
-    {
-        printf("BME280 initialization failed!\r\n");
-        Error_Handler();
-    }
-    else
-    {
-        printf("BME280 initialized successfully!\r\n");
-    }
+  if (Epd_Init(&epd) != 0)
+  {
+    printf("e-Paper init failed\n");
+    return 1;
+  }
 
-    // Configure BME280 sensor
-    bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
-    bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
-    bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
-    bme280_set_filter(BME280_FILTER_COEFF_16);
-    bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
+  Epd_Clear(&epd);
+  printf("e-Paper init succeed!\n");
+
+  unsigned char top_menu[(400 * 300) / 8 + 100] = {0}; // Bufor dla całego gornego  paska
+
+  // width should be the multiple of 8
+  Paint_Init(&paint, top_menu, 400, 300);
+  Paint_Clear(&paint, UNCOLORED);
+
+  // Początkowe wypełnienie ekranu
+
+  Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    while (1)
+
+  int thickness = 2; // Grubość obiektów interfejsu
+
+  // Parametry obiektów
+  int width = 120;
+  int height = 90;
+
+  // Obliczenia przesunięć
+  int offset_x = 260; // Przesunięcie poziome
+  int offset_y = 100; // Przesunięcie pionowe
+
+  // Obliczanie środka ekranu
+  int screen_center_x = EPD_WIDTH / 2;
+  int screen_center_y = EPD_HEIGHT / 2;
+
+  int vertical_gap = 10; // Odległość pionowa między ćwiartkami
+
+  // Obliczanie pozycji ćwiartek względem środka ekranu
+  int x0_left = screen_center_x - offset_x / 2 - width / 2;
+  int x0_right = screen_center_x + offset_x / 2 - width / 2;
+  int y0_top = screen_center_y - offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
+  int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
+
+  init_ens160();
+  while (1)
+  {
+    read_and_print_ens160_data();
+
+    uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+    int iconIndex = getIconIndex(encoderValue);
+      currentIconIndex = getIconIndex(encoderValue); 
+    // Użycie zmiennej do śledzenia ostatniej wartości iconIndex
+
+    Paint_Clear(&paint, UNCOLORED);
+
+    DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
+
+    uint8_t bat_percentage = read_soc(&hi2c1);
+
+    char buffer_bat_percentage[100];
+
+    Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
+
+    snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
+    Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
+    batteryLevel = bat_percentage;
+
+    // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+
+    // Rysowanie linii poziomej
+    // Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
+
+    // Rysowanie obiektów
+    Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
+
+    Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
+
+    uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
+
+    char buffer_tvoc[20]; // Adjust the buffer size as needed
+
+    Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
+    snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
+    Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc, &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 340, 102, "ppm", &Font16, COLORED);
+
+    Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
+
+    uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
+    char buffer_CO2[300];
+    snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
+    Paint_DrawStringAt(&paint, 20, 100, buffer_CO2, &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 18, 80, "CO2", &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 64, 103, "ppm", &Font16, COLORED);
+
+    Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
+
+    // Obliczanie środka geometrycznego czterech obiektów
+    int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
+    int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
+
+    // Ustawienia dla pierścienia
+    int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
+
+    // Rysowanie centralnego pierścienia
+    Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
+
+    uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
+    char buffer_AQI[100];
+    snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
+    Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
+    Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
+
+    /*
+
+
+    int32_t temp_raw, pressure_raw, humidity_raw;
+    bme280_set_power_mode(BME280_FORCED_MODE);
+
+     int32_t v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+            int32_t  v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+            int32_t  v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
+
+
+
+       char buffer_temp[100];
+     char buffer_press[100];
+     char buffer_hum[100];
+
+    snprintf(buffer_temp, sizeof(buffer_temp), "%d", v_comp_temp_s32);
+    snprintf(buffer_press, sizeof(buffer_press), "%d", v_comp_press_u32);
+
+    snprintf(buffer_hum, sizeof(buffer_hum), "%d", v_comp_humidity_u32);
+
+
+
+
+    Paint_DrawStringAtCenter(&paint, center_y, v_comp_humidity_u32, &Font20, 300);
+    Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
+
+
+
+                                
+
+     */
+
+    // int r_height = 30;
+    // Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
+
+    DisplayBottomSection(&paint, iconIndex);
+
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+    HAL_Delay(10); // Opóźnienie 1 ms
+
+    // Zwiększenie licznika impulsów
+    loopCounter++;
+
+    // Sprawdzanie, czy licznik osiągnął 180
+    if (loopCounter >= 180)
     {
-        // Read and print data from sensors
-        print_sensor_data_bme280(p_bme280);
-        print_sensor_data();
-        read_and_print_ens160_data();
+      Epd_Clear(&epd); // Pełny reset ekranu
+      Paint_Clear(&paint, UNCOLORED);
+      Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
-   // Check if it's time to toggle the buzzer
-        if (measurement_number % BUZZER_TOGGLE_INTERVAL == 0)
-        {
-            toggle_buzzer();
-        }
-
-
-        HAL_Delay(100);  // Delay for 100 milliseconds
-
-        // Encoder read and ADC conversion for additional sensors
-        unsigned short en_count;
-        en_count = __HAL_TIM_GET_COUNTER(&htim2);
-
-        printf("Encoder read: %d\n", en_count);
-
-        // Read and print ADC values
-        read_adc_values();
-
-        HAL_Delay(250);  // Delay for 250 milliseconds
+      loopCounter = 0; // Zresetowanie licznika impulsów
     }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+  }
+
   /* USER CODE END 3 */
 }
 
@@ -870,6 +826,72 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == EN_SW_Pin)
+    {
+        uint32_t current_time = HAL_GetTick();
+        if ((current_time - last_interrupt_time) > debounce_time)
+        {
+            last_interrupt_time = current_time;
+
+            printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+
+            // Włączenie BUZZ
+            HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET);
+
+            // Uruchomienie timera, aby wyłączyć BUZZ po 100 ms
+            __HAL_TIM_SET_COUNTER(&htim3, 0);
+            HAL_TIM_Base_Start_IT(&htim3);
+
+            switch (currentIconIndex)
+            {
+                case 1:
+                    printf("Przechodzę do menu 1\n");
+                    break;
+                case 2:
+                    printf("Przechodzę do menu 2\n");
+                    break;
+                case 3:
+                    printf("Przechodzę do menu 3\n");
+                    break;
+                case 4:
+                    printf("Przechodzę do menu 4\n");
+                    break;
+                case 5:
+                    printf("Przechodzę do menu 5\n");
+                    break;
+                case 6:
+                    printf("Przechodzę do menu 6\n");
+                    break;
+                case 7:
+                    printf("Przechodzę do menu 7\n");
+                    break;
+                case 8:
+                    printf("Przechodzę do menu 8\n");
+                    break;
+                default:
+                    printf("Nieznane menu\n");
+                    break;
+            }
+        }
+    }
+}
+
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM3)
+  {
+    HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_RESET);
+    HAL_TIM_Base_Stop_IT(htim);
+  }
+}
+
+
+
+
 
 /* USER CODE END 4 */
 
@@ -881,10 +903,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+
   /* USER CODE END Error_Handler_Debug */
 }
 
