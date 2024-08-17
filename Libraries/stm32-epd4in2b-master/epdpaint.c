@@ -1,7 +1,10 @@
 #include "epdpaint.h"
-#include "epd4in2b.h"
 #include <stdlib.h>
 #include <string.h>
+#include "imagedata.h"
+#include "epd4in2b.h"
+#include "user_interface.h"
+
 
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height) {
     paint->image = image;
@@ -67,7 +70,6 @@ void Paint_DrawCharAt(Paint* paint, int x, int y, char ascii_char, sFONT* font, 
         }
     }
 }
-
 void Paint_DrawStringAt(Paint* paint, int x, int y, const char* text, sFONT* font, int colored) {
     const char* p_text = text;
     unsigned int refcolumn = x;
@@ -78,6 +80,7 @@ void Paint_DrawStringAt(Paint* paint, int x, int y, const char* text, sFONT* fon
         p_text++;
     }
 }
+
 
 void Paint_DrawHorizontalLine(Paint* paint, int x, int y, int width, int colored) {
     for (int i = x; i < x + width; i++) {
@@ -278,10 +281,7 @@ int Paint_GetRotate(Paint* paint) {
 unsigned char* Paint_GetImage(Paint* paint) {
     return paint->image;
 }
-
-
-
-void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored) {
+void DrawBattery(Paint *paint, int x, int y, int width, int height, float percentage, int colored) {
     // Główny prostokąt baterii
     Paint_DrawRectangle(paint, x, y, x + width, y + height, colored);
 
@@ -289,6 +289,29 @@ void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored)
     int connectorWidth = 5;
     int connectorHeight = height / 2;
     Paint_DrawRectangle(paint, x + width, y + (height - connectorHeight) / 2, x + width + connectorWidth, y + (height + connectorHeight) / 2, colored);
+
+    // Definiowanie offsetu
+    int offset = 2;
+
+    // Obliczanie szerokości wypełnienia odpowiadającej poziomowi naładowania
+    int fillWidth = (width - 2 * offset) * percentage / 100;
+
+    // Rysowanie wypełnienia baterii z offsetem
+    Paint_DrawFilledRectangle(paint, x + offset, y + offset, x + offset + fillWidth, y + height - offset, colored); // Wypełnienie prostokąta wewnątrz baterii
+}
+
+
+
+void DrawBatteryLevel(Paint *paint, int x, int y, int width, int height, int level, int colored) {
+    // Szerokość jednego poziomu naładowania
+    int levelWidth = (width - 4) / 3; // -4 to marginesy
+    int gap = 2; // Odstęp między poziomami naładowania
+
+    for (int i = 0; i < level; i++) {
+        // Rysuj poziomy naładowania
+        int levelX = x + 2 + i * (levelWidth + gap); // Pozycja X z uwzględnieniem odstępów
+        Paint_DrawFilledRectangle(paint, levelX, y + 2, levelX + levelWidth, y + height - 2, colored); // -2 to górny i dolny margines
+    }
 }
 
 
@@ -301,6 +324,290 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
             } else {
                 Paint_DrawPixel(paint, x + i, y + j, colored);
             }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth) {
+    int textLength = strlen(text);
+    int textWidth = textLength * font->Width;
+    int centeredX = (displayWidth - textWidth) / 2;
+    Paint_DrawStringAt(paint, centeredX, y, text, font, COLORED);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, int height, int selected) {
+    if (selected) {
+        // Rysuj migający prostokąt wokół ikony
+        Paint_DrawRectangle(paint, x - 2, y - 2, x + width + 2, y + height + 2, COLORED);
+    }
+    Paint_DrawBitmap(paint, icon, x, y, width, height, COLORED);
+}
+
+
+
+
+
+
+void DrawBottomPanel(Paint* paint, int iconIndex) {
+    const char* menuText;
+
+    // Wybór napisu w zależności od wartości iconIndex
+    switch (iconIndex) {
+        case 1:
+            menuText = "Menu 1";
+            break;
+        case 2:
+            menuText = "Menu 2";
+            break;
+        case 3:
+            menuText = "Menu 3";
+            break;
+        case 4:
+            menuText = "Menu 4";
+            break;
+        case 5:
+            menuText = "Menu 5";
+            break;
+        case 6:
+            menuText = "Menu 6";
+            break;
+        case 7:
+            menuText = "Menu 7";
+            break;
+        case 8:
+            menuText = "Menu 8";
+            break;
+        default:
+            menuText = "Unknown Menu";
+            break;
+    }
+
+    // Obliczanie pozycji X, aby tekst był wyśrodkowany
+    int textLength = strlen(menuText);
+    int textWidth = textLength * Font16.Width; // Zakładając, że używasz Font16
+    int centeredX = (400 - textWidth) / 2;
+
+    // Wyświetlanie napisu na środku ekranu
+    Paint_DrawStringAt(paint, centeredX, 275, menuText, &Font16, COLORED);
+}
+
+
+
+void DrawTopPanel(Paint* paint, int counter, float batteryLevel, uint32_t encoderValue, int iconIndex) {
+    char buffer_top[100];
+    
+    // Wyświetlanie informacji o ikonie i wartości enkodera
+    snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%lu", iconIndex, encoderValue);
+    Paint_DrawStringAt(paint, 150, 5, buffer_top, &Font20, COLORED);
+
+    // Wyświetlanie licznika
+    snprintf(buffer_top, sizeof(buffer_top), "%d", counter);
+    Paint_DrawStringAt(paint, 10, 5, buffer_top, &Font20, COLORED);
+
+    // Rysowanie poziomu baterii
+    DrawBattery(paint, 350, 2, 32, 70,batteryLevel, COLORED);
+   
+}
+
+
+
+
+
+
+
+
+
+
+void Paint_DrawLineWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored)
+{
+    if (x0 == x1)
+    { // Linia pionowa
+        for (int i = -thickness / 2; i <= thickness / 2; i++)
+        {
+            Paint_DrawLine(paint, x0 + i, y0, x1 + i, y1, colored);
+        }
+    }
+    else if (y0 == y1)
+    { // Linia pozioma
+        for (int i = -thickness / 2; i <= thickness / 2; i++)
+        {
+            Paint_DrawLine(paint, x0, y0 + i, x1, y1 + i, colored);
+        }
+    }
+    else
+    { // Linia ukośna
+        for (int i = -thickness / 2; i <= thickness / 2; i++)
+        {
+            Paint_DrawLine(paint, x0, y0 + i, x1, y1 + i, colored);
+            Paint_DrawLine(paint, x0 + i, y0, x1 + i, y1, colored);
+        }
+    }
+}
+
+
+
+void Paint_DrawRectangleWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored)
+{
+    Paint_DrawLineWithThickness(paint, x0, y0, x1, y0, thickness, colored); // Top
+    Paint_DrawLineWithThickness(paint, x0, y0, x0, y1, thickness, colored); // Left
+    Paint_DrawLineWithThickness(paint, x1, y0, x1, y1, thickness, colored); // Right
+    Paint_DrawLineWithThickness(paint, x0, y1, x1, y1, thickness, colored); // Bottom
+}
+
+
+
+
+
+void Paint_Draw3RectanglesCenter(Paint *paint, int y0_bottom, int height, int distance, int thickness, int colored, int x0_left, int x0_right)
+{
+    int width = x0_right - x0_left; // Całkowita szerokość dla prostokątów i odstępów
+    int rect_width = (width - 2 * distance) / 3; // Szerokość pojedynczego prostokąta
+    int start_x = x0_left; // Punkt początkowy dla lewego prostokąta
+
+    for (int i = 0; i < 3; i++)
+    {
+        int x0 = start_x + i * (rect_width + distance);
+        int x1 = x0 + rect_width;
+        int y0 = y0_bottom; // Pozycja y górnej krawędzi prostokąta
+        int y1 = y0 + height; // Pozycja y dolnej krawędzi prostokąta
+        
+        // Sprawdzenie, czy prostokąt nie wyjdzie poza ograniczenie x0_right
+        if (x1 > x0_right) {
+            x1 = x0_right;
+        }
+
+        Paint_DrawRectangleWithThickness(paint, x0, y0, x1, y1, thickness, colored);
+    }
+}
+
+
+
+
+void Paint_DrawRing(Paint *paint, int x0, int y0, int radius, int thickness, int colored)
+{
+    int inner_radius = radius - thickness;
+    int outer_radius = radius;
+    int x, y;
+
+    for (y = -outer_radius; y <= outer_radius; y++)
+    {
+        for (x = -outer_radius; x <= outer_radius; x++)
+        {
+            int distance = x * x + y * y;
+            if (distance <= outer_radius * outer_radius && distance >= inner_radius * inner_radius)
+            {
+                Paint_DrawPixel(paint, x0 + x, y0 + y, colored);
+            }
+        }
+    }
+}
+
+
+
+
+
+void Paint_Universal_Ring(Paint *paint, int x0, int y0, int width, int height, int thickness, int colored, int type)
+{
+    int radius = height; // Promień okręgu to wysokość prostokąta
+    int x1 = x0 + width;
+    int y1 = y0 + height;
+    int cx, cy;
+
+    if (type == 1 || type == 3)
+    {
+        // Lewa strona
+        cx = x0 + radius;
+    }
+    else
+    {
+        // Prawa strona
+        cx = x1 - radius;
+    }
+
+    if (type == 1 || type == 2)
+    {
+        // Góra
+        cy = y0 + radius;
+    }
+    else
+    {
+        // Dół
+        cy = y1 - radius;
+    }
+
+    // Rysowanie ćwiartki pierścienia
+    int inner_radius = radius - thickness;
+    int outer_radius = radius;
+    for (int y = -outer_radius; y <= 0; y++)
+    {
+        for (int x = -outer_radius; x <= 0; x++)
+        {
+            int distance = x * x + y * y;
+
+            if (distance <= outer_radius * outer_radius && distance >= inner_radius * inner_radius)
+            {
+                if (type == 1 || type == 3)
+                {
+                    // Lewa górna lub lewa dolna (ćwiartka przesunięta w prawo)
+                    Paint_DrawPixel(paint, cx + x + radius, cy + (type == 1 ? y : -y), colored);
+                }
+                else
+                {
+                    // Prawa górna lub prawa dolna
+                    Paint_DrawPixel(paint, cx + (type == 1 || type == 3 ? x : -x - radius), cy + (type == 1 || type == 2 ? y : -y), colored);
+                }
+            }
+        }
+    }
+
+    // Rysowanie pionowych linii prostokąta
+    if (type == 1 || type == 3)
+    {
+        Paint_DrawLineWithThickness(paint, x0, y0, x0, y1, thickness, colored); // Lewa pionowa linia
+    }
+    else
+    {
+        Paint_DrawLineWithThickness(paint, x1, y0, x1, y1, thickness, colored); // Prawa pionowa linia
+    }
+
+    // Rysowanie górnej lub dolnej linii prostokąta (krótkiej i długiej)
+    for (int i = 0; i < thickness; i++)
+    {
+        if (type == 1 || type == 2)
+        {
+            // Długa górna linia
+            Paint_DrawLineWithThickness(paint, type == 2 ? cx - radius : x0, y0 + i, type == 1 ? cx + radius : x1, y0 + i, 1, colored);
+
+            // Krótka dolna linia
+            Paint_DrawLineWithThickness(paint, type == 1 ? x0 : x1 - radius, y1 + i - thickness + 1, type == 1 ? cx : x1, y1 + i - thickness + 1, 1, colored);
+            
+        }
+        else
+        {
+            // Krótka górna linia
+            Paint_DrawLineWithThickness(paint, type == 3 ? x0 : x1 - radius, y0 + i, type == 3 ? cx : x1, y0 + i, 1, colored);
+
+            // Długa dolna linia
+            Paint_DrawLineWithThickness(paint, type == 4 ? cx - radius : x0, y1 + i - thickness + 1, type == 3 ? cx + radius : x1, y1 + i - thickness + 1, 1, colored);
         }
     }
 }

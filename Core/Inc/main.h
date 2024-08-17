@@ -67,14 +67,11 @@ void Error_Handler(void);
 #define BUSY_GPIO_Port GPIOB
 #define BUZZ_Pin GPIO_PIN_8
 #define BUZZ_GPIO_Port GPIOC
-#define CS2_Pin GPIO_PIN_9
-#define CS2_GPIO_Port GPIOA
-#define SW_Pin GPIO_PIN_12
-#define SW_GPIO_Port GPIOA
-#define EN_CLK_Pin GPIO_PIN_15
-#define EN_CLK_GPIO_Port GPIOA
-#define EN_DT_Pin GPIO_PIN_3
-#define EN_DT_GPIO_Port GPIOB
+#define CS_2_Pin GPIO_PIN_9
+#define CS_2_GPIO_Port GPIOA
+#define EN_SW_Pin GPIO_PIN_12
+#define EN_SW_GPIO_Port GPIOA
+#define EN_SW_EXTI_IRQn EXTI15_10_IRQn
 
 /* USER CODE BEGIN Private defines */
 

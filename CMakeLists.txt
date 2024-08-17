@@ -52,6 +52,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font20.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/font24.c
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master/imagedata.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/user_interface.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/main.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/stm32l4xx_it.c
+    ${CMAKE_SOURCE_DIR}/Core/Src/stm32l4xx_hal_msp.c
     ${CMAKE_SOURCE_DIR}/Core/Src/fatfs_sd_card.c
 )
 
@@ -63,7 +67,6 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-sen05xx-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-max17048-master
     ${CMAKE_SOURCE_DIR}/Libraries/stm32-epd4in2b-master
-
   
 )
 

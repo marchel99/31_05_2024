@@ -2,9 +2,10 @@
 #define _EPDPAINT_H_
 
 
+
+
 #include "fonts.h" // Dodanie tego nagłówka, aby użyć sFONT z tego pliku
 
-// Definitions of colors
 
 
 typedef struct {
@@ -13,6 +14,9 @@ typedef struct {
     int height;
     int rotate;
 } Paint;
+
+
+
 
 void Paint_Init(Paint* paint, unsigned char* image, int width, int height);
 void Paint_Clear(Paint* paint, int colored);
@@ -31,8 +35,24 @@ void Paint_DrawFilledCircle(Paint* paint, int x, int y, int radius, int colored)
 
 void Paint_DrawCircleQuarter(Paint* paint, int x, int y, int r, int quarter, int colored);
 
-void DrawBattery(Paint* paint, int x, int y, int width, int height, int colored);
+void DrawBattery(Paint *paint, int x, int y, int width, int height, float percentage, int colored);
+
+
+
 void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, int width, int height, int colored);
+
+
+
+
+void DrawIcon(Paint *paint, const unsigned char *icon, int x, int y, int width, int height, int selected);
+
+
+
+
+void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth);
+
+void DrawTopPanel(Paint* paint, int counter, float batteryLevel, uint32_t encoderValue, int iconIndex);
+void DrawBottomPanel(Paint* paint, int iconIndex);
 
 
 void Paint_SetWidth(Paint* paint, int width);
@@ -42,5 +62,26 @@ int Paint_GetHeight(Paint* paint);
 void Paint_SetRotate(Paint* paint, int rotate);
 int Paint_GetRotate(Paint* paint);
 unsigned char* Paint_GetImage(Paint* paint);
+
+
+
+
+void Paint_DrawLineWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored);
+
+void Paint_DrawRectangleWithThickness(Paint *paint, int x0, int y0, int x1, int y1, int thickness, int colored);
+void Paint_Draw3RectanglesCenter(Paint *paint, int y0_bottom, int height, int distance, int thickness, int colored, int x0_left, int x0_right);
+void Paint_Universal_Ring(Paint *paint, int x0, int y0, int width, int height, int thickness, int colored, int type);
+
+void Paint_DrawRing(Paint *paint, int x0, int y0, int radius, int thickness, int colored);
+
+
+
+
+
+
+
+
+
+
 
 #endif /* _EPDPAINT_H_ */
