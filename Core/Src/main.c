@@ -70,6 +70,11 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 //volatile uint8_t buttonState_SW = 0; 
 
+float read_adc_value(void);
+int get_co_ppm(float voltage);
+
+
+
 volatile uint8_t buzzer_active = 0;
 volatile uint32_t last_interrupt_time = 0;
 const uint32_t debounce_time = 200; // czas tłumienia drgań w ms
@@ -106,6 +111,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
+void user_delay_ms(uint32_t period);
 void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
 void read_and_print_ens160_data(void);
@@ -142,6 +148,154 @@ int __io_putchar(int ch)
 }
 
 
+
+
+
+
+
+
+
+
+
+
+void read_adc_values(void)
+{
+    uint32_t value[2];
+    float voltage[2];
+
+    HAL_ADC_Start(&hadc1);
+
+    // Conversion for CO channel
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[0] = HAL_ADC_GetValue(&hadc1);
+
+    // Conversion for HCHO channel
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    value[1] = HAL_ADC_GetValue(&hadc1);
+
+    // Convert ADC values to voltage
+    voltage[0] = 3.3f * value[0] / 4095.0f;
+    voltage[1] = 3.3f * value[1] / 4095.0f;
+
+    // Calculate CO ppm
+    int co_ppm = get_co_ppm(voltage[0]);
+
+    printf("CO value=%lu (%.3f V), CO ppm=%d\n", value[0], voltage[0], co_ppm);
+    printf("HCHO value=%lu (%.3f V)\n", value[1], voltage[1]);
+}
+
+
+
+int get_co_ppm(float voltage)
+{
+    // Stałe wartości dla obliczeń
+    const float R0 = 90.26f; // Wartość R0 w kΩ
+    const float RL = 4.7f; // Wartość rezystora pull-down w kΩ
+
+    // Oblicz rezystancję czujnika Rs
+    float Rs = RL * (3.3f / voltage - 1.0f);
+
+    // Oblicz stosunek Rs/R0
+    float ratio = Rs / R0;
+
+    // Zwróć odpowiednią wartość ppm na podstawie stosunku
+    if (ratio > 0.8f) return 5;
+    else if (ratio > 0.4f) return 10;
+    else if (ratio > 0.3f) return 20;
+    else if (ratio > 0.21f) return 50;
+    else if (ratio > 0.17f) return 100;
+    else if (ratio > 0.15f) return 150;
+    else if (ratio > 0.12f) return 500;
+    else if (ratio > 0.1f) return 1000;
+    else return 5000;
+}
+
+
+
+
+
+
+
+
+
+
+// Delay function for BME280
+void user_delay_ms(uint32_t period)
+{
+    HAL_Delay(period);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Function to read and print BME280 sensor data
+void print_sensor_data_bme280(struct bme280_t *bme280)
+{
+    int32_t temp_raw, pressure_raw, humidity_raw;
+
+    // Set the sensor to FORCED_MODE for a single measurement
+    bme280_set_power_mode(BME280_FORCED_MODE);
+    user_delay_ms(100); // Add delay after setting the mode
+
+    if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
+    {
+        int32_t v_comp_temp_s32;
+        uint32_t v_comp_press_u32;
+        uint32_t v_comp_humidity_u32;
+
+        v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+        v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+        v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
+
+        float imp_temp = ((float)v_comp_temp_s32 / 100);
+        float imp_press = ((float)v_comp_press_u32 / 100);
+        float imp_humi = ((float)v_comp_humidity_u32 / 1024);
+        float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
+
+        char raw_buffer[200];
+        const char separator[] = "________________________________________________________________________\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+        int length = snprintf(raw_buffer, sizeof(raw_buffer), "ENS160_Status: %d, Raw Temp: %ld, Raw Pressure: %ld, Raw Humidity: %ld\r\n",
+                              DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
+        HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
+
+        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+
+        char display_buffer[200];
+        length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
+                          imp_temp, imp_press, imp_humi, dewpt);
+        HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
+    }
+    else
+    {
+        const char error_message[] = "Sensor read error!\r\n";
+        HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  void init_ens160(void)
   {
     DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
@@ -176,6 +330,32 @@ int __io_putchar(int ch)
     }
     return 0;
   }
+
+
+
+
+// I2C write function for BME280
+int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
+{
+    HAL_StatusTypeDef status;
+
+    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
+    {
+        printf("I2C device not ready!\r\n");
+        return -1;
+    }
+
+    status = HAL_I2C_Mem_Write(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+    if (status != HAL_OK)
+    {
+        printf("I2C write error: %d\r\n", status);
+        return -1;
+    }
+    return 0;
+}
+
+
+
 
 
 
@@ -274,9 +454,47 @@ int main(void)
   int y0_bottom = screen_center_y + offset_y / 2 - height / 2 - 10 - vertical_gap / 2;
 
   init_ens160();
+
+ p_bme280->bus_write = user_i2c_write;
+    p_bme280->bus_read = user_i2c_read;
+    p_bme280->delay_msec = user_delay_ms;
+    p_bme280->dev_addr = BME280_I2C_ADDR;
+
+    if (bme280_init(p_bme280) != BME280_OK)
+    {
+        printf("BME280 initialization failed!\r\n");
+        Error_Handler();
+    }
+    else
+    {
+        printf("BME280 initialized successfully!\r\n");
+    }
+
+    // Configure BME280 sensor
+    bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
+    bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
+    bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
+    bme280_set_filter(BME280_FILTER_COEFF_16);
+    bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
+
+
+
+
   while (1)
   {
     read_and_print_ens160_data();
+
+print_sensor_data_bme280(p_bme280);
+
+
+
+
+read_adc_values();
+
+
+
+
+
 
     uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
     int iconIndex = getIconIndex(encoderValue);
@@ -337,11 +555,52 @@ int main(void)
     // Rysowanie centralnego pierścienia
     Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
 
-    uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
-    char buffer_AQI[100];
-    snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
-    Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
-    Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
+uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
+char buffer_AQI[100];
+snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
+Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
+Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
+
+int32_t temp_raw = 0;
+int32_t pressure_raw = 0;
+int32_t humidity_raw = 0;
+
+// Odczyt surowych danych z czujnika BME280
+if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
+{
+    // Kompensacja temperatury
+    int32_t bme280_temp = bme280_compensate_temperature_int32(temp_raw);
+    float temperature_celsius = bme280_temp / 100.0;  // Zamiana na stopnie Celsjusza
+    
+    // Kompensacja wilgotności
+    uint32_t bme280_humidity = bme280_compensate_humidity_int32(humidity_raw);
+    float humidity_percentage = bme280_humidity / 1024.0;  // Zamiana na % wilgotności
+    
+    // Tworzenie buforów dla wyświetlania temperatury i wilgotności
+    char buffer_TEMP[50];
+    char buffer_HUM[50];
+    snprintf(buffer_TEMP, sizeof(buffer_TEMP), "%.2f", temperature_celsius);
+    snprintf(buffer_HUM, sizeof(buffer_HUM), "%.2f", humidity_percentage);
+    
+    // Pozycje dla T: i H:
+    int line_y = center_y + 40;  // Pozycja Y dla wyświetlania tekstu pod AQI
+
+    // Wyświetlanie temperatury i wilgotności na tej samej linii poziomej, pod AQI
+    Paint_DrawStringAt(&paint, center_x - 60, line_y - 20, "T:", &Font16, 400);
+    Paint_DrawStringAt(&paint, center_x - 60, line_y, buffer_TEMP, &Font16, 400);
+    
+    Paint_DrawStringAt(&paint, center_x + 20, line_y - 20, "H:", &Font16, 400);
+    Paint_DrawStringAt(&paint, center_x + 20, line_y, buffer_HUM, &Font16, 400);
+}
+else
+{
+    // Obsługa błędu, jeśli odczyt danych się nie powiódł
+    Paint_DrawStringAtCenter(&paint, center_y + 40, "Error", &Font16, 400);
+}
+
+
+
+
 
     /*
 
