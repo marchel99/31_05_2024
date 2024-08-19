@@ -20,6 +20,13 @@ void UI_HandleButtonPress_1(void)
     printf("1 przycisk jest wcisniety!\n");
 }
 
+
+
+
+
+
+
+
 void UI_HandleButtonPress_2(void)
 {
     printf("2 przycisk jest wcisniety!\n");

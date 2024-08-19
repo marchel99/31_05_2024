@@ -1107,6 +1107,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             {
                 case 1:
                     printf("Przechodzę do menu 1\n");
+                     UI_HandleButtonPress_1();
                     break;
                 case 2:
                     printf("Przechodzę do menu 2\n");
