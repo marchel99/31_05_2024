@@ -18,6 +18,7 @@ extern Epd epd;
 void UI_HandleButtonPress_1(void)
 {
     printf("1 przycisk jest wcisniety!\n");
+    Paint_Clear(&paint, UNCOLORED);
 }
 
 
