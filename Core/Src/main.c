@@ -77,6 +77,10 @@ int get_co_ppm(float voltage);
 
 volatile uint8_t buzzer_active = 0;
 volatile uint32_t last_interrupt_time = 0;
+volatile uint8_t GoToMenu = 0;
+
+
+
 const uint32_t debounce_time = 200; // czas tłumienia drgań w ms
 
 
@@ -480,13 +484,27 @@ int main(void)
 
 
 
+
+
+
+
+
 while (1)
 {
     if (!inMenu)
     {
 
       
-        read_and_print_ens160_data();
+ read_and_print_ens160_data();
+
+print_sensor_data_bme280(p_bme280);
+
+
+
+
+read_adc_values();
+
+
 
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
         int iconIndex = getIconIndex(encoderValue);
@@ -569,7 +587,41 @@ while (1)
             loopCounter = 0; // Zresetowanie licznika impulsów
         }
     }
-}
+
+ // Sprawdzenie czy mamy przejść do menu
+        if (GoToMenu > 0 && GoToMenu <= 8)
+        {
+            inMenu = 1;
+            switch (GoToMenu)
+            {
+                case 1:
+                    ShowMenu1();
+                    break;
+                case 2:
+                    ShowMenu2();
+                    break;
+                case 3:
+                    ShowMenu3();
+                    break;
+                case 4:
+                    ShowMenu4();
+                    break;
+                case 5:
+                    ShowMenu5();
+                    break;
+                case 6:
+                    ShowMenu6();
+                    break;
+                case 7:
+                    ShowMenu7();
+                    break;
+                case 8:
+                    ShowMenu8();
+                    break;
+            }
+            GoToMenu = 0; // Zresetowanie zmiennej po obsłużeniu
+        }
+    }
 
 
 
@@ -1015,7 +1067,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         {
             last_interrupt_time = current_time;
 
-            printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+            if (inMenu)
+            {
+                // Wyjdź z menu
+                inMenu = 0;
+                //ReturnToMainScreen(); // Powrót do głównego ekranu
+            }
+            else
+            {
+                // Wejdź do menu
+                printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+
+                // Ustawienie GoToMenu na podstawie currentIconIndex
+                GoToMenu = currentIconIndex;
+
+                inMenu = 1; // Ustawienie flagi inMenu na true
+            }
 
             // Włączenie BUZZ
             HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET);
@@ -1023,42 +1090,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             // Uruchomienie timera, aby wyłączyć BUZZ po 100 ms
             __HAL_TIM_SET_COUNTER(&htim3, 0);
             HAL_TIM_Base_Start_IT(&htim3);
-
-            switch (currentIconIndex)
-            {
-                case 1:
-                    printf("Przechodzę do menu 1\n");
-                        ShowMenu1();
-                    break;
-                case 2:
-                    printf("Przechodzę do menu 2\n");
-                    break;
-                case 3:
-                    printf("Przechodzę do menu 3\n");
-                    break;
-                case 4:
-                    printf("Przechodzę do menu 4\n");
-                    break;
-                case 5:
-                    printf("Przechodzę do menu 5\n");
-                    break;
-                case 6:
-                    printf("Przechodzę do menu 6\n");
-                    break;
-                case 7:
-                    printf("Przechodzę do menu 7\n");
-                    break;
-                case 8:
-                    printf("Przechodzę do menu 8\n");
-                    break;
-                default:
-                    printf("Nieznane menu\n");
-                    break;
-            }
         }
     }
 }
-
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)

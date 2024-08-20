@@ -15,97 +15,88 @@ int currentDisplayMode = COLORED;
 extern Paint paint;
 extern Epd epd;
 
-
 void ShowMenu1(void)
 {
     printf("1 przycisk jest wcisniety!\n");
-   // Paint_Clear(&paint, UNCOLORED);
+    // Wyświetlenie treści menu 1
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 1 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
-
-
 
 void ShowMenu2(void)
 {
     printf("Wyświetlanie Menu 2\n");
-    // Implementacja Menu 2
+    // Wyświetlenie treści menu 2
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 2 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu3(void)
 {
     printf("Wyświetlanie Menu 3\n");
-    // Implementacja Menu 3
+    // Wyświetlenie treści menu 3
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 3 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu4(void)
 {
     printf("Wyświetlanie Menu 4\n");
-    // Implementacja Menu 4
+    // Wyświetlenie treści menu 4
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 4 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu5(void)
 {
     printf("Wyświetlanie Menu 5\n");
-    // Implementacja Menu 5
+    // Wyświetlenie treści menu 5
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 5 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu6(void)
 {
     printf("Wyświetlanie Menu 6\n");
-    // Implementacja Menu 6
+    // Wyświetlenie treści menu 6
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 6 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu7(void)
 {
     printf("Wyświetlanie Menu 7\n");
-    // Implementacja Menu 7
+    // Wyświetlenie treści menu 7
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 7 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 void ShowMenu8(void)
 {
     printf("Wyświetlanie Menu 8\n");
-    // Implementacja Menu 8
+    // Wyświetlenie treści menu 8
+    Paint_Clear(&paint, UNCOLORED);
+    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 8 menu!", &Font20, 400);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 }
 
 
 
 
-void UI_HandleButtonPress_2(void)
-{
-    printf("2 przycisk jest wcisniety!\n");
-}
 
-void UI_HandleButtonPress_3(void)
-{
-    printf("3 przycisk jest wcisniety!\n");
-}
 
-void UI_HandleButtonPress_4(void)
-{
-    printf("4 przycisk jest wcisniety!\n");
-}
 
-void UI_HandleButtonPress_5(void)
-{
-    printf("5 przycisk jest wcisniety!\n");
-}
 
-void UI_HandleButtonPress_6(void)
-{
-    printf("6 przycisk jest wcisniety!\n");
-}
 
-void UI_HandleButtonPress_7(void)
-{
-    printf("7 przycisk jest wcisniety!\n");
-    Epd_Clear(&epd);
-    Epd_DisplayFull(&epd, Paint_GetImage(&paint));
-    HAL_Delay(100);
-}
 
-void UI_HandleButtonPress_8(void)
-{
-    printf("8 przycisk jest wcisniety!\n");
-}
+
 
 void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int counter, uint8_t batteryLevel)
 {
