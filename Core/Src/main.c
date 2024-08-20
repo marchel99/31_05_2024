@@ -505,10 +505,14 @@ while (1)
     {
 
 
-HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
- 
-printf("RTC: %04d-%02d-%02d, %02d:%02d:%02d\n", 2000 + date.Year, date.Month, date.Date, time.Hours, time.Minutes, time.Seconds);
+
+
+     HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+
+ printf("RTC: %02d:%02d:%02d\n", time.Hours, time.Minutes, time.Seconds);
+      
+
+
       
  read_and_print_ens160_data();
 
