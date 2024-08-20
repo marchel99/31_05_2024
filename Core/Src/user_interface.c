@@ -15,15 +15,56 @@ int currentDisplayMode = COLORED;
 extern Paint paint;
 extern Epd epd;
 
-void UI_HandleButtonPress_1(void)
+
+void ShowMenu1(void)
 {
     printf("1 przycisk jest wcisniety!\n");
-    Paint_Clear(&paint, UNCOLORED);
+   // Paint_Clear(&paint, UNCOLORED);
 }
 
 
 
+void ShowMenu2(void)
+{
+    printf("Wyświetlanie Menu 2\n");
+    // Implementacja Menu 2
+}
 
+void ShowMenu3(void)
+{
+    printf("Wyświetlanie Menu 3\n");
+    // Implementacja Menu 3
+}
+
+void ShowMenu4(void)
+{
+    printf("Wyświetlanie Menu 4\n");
+    // Implementacja Menu 4
+}
+
+void ShowMenu5(void)
+{
+    printf("Wyświetlanie Menu 5\n");
+    // Implementacja Menu 5
+}
+
+void ShowMenu6(void)
+{
+    printf("Wyświetlanie Menu 6\n");
+    // Implementacja Menu 6
+}
+
+void ShowMenu7(void)
+{
+    printf("Wyświetlanie Menu 7\n");
+    // Implementacja Menu 7
+}
+
+void ShowMenu8(void)
+{
+    printf("Wyświetlanie Menu 8\n");
+    // Implementacja Menu 8
+}
 
 
 

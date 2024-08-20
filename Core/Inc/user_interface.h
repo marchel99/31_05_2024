@@ -6,7 +6,25 @@
 #define COLORED     1
 #define UNCOLORED   0
 
-void UI_HandleButtonPress_1(void); 
+
+
+
+void ShowMenu1(void);
+void ShowMenu2(void);
+void ShowMenu3(void);
+void ShowMenu4(void);
+void ShowMenu5(void);
+void ShowMenu6(void);
+void ShowMenu7(void);
+void ShowMenu8(void);
+
+
+
+
+
+
+
+
 void UI_HandleButtonPress_2(void); 
 void UI_HandleButtonPress_3(void); 
 void UI_HandleButtonPress_4(void); 
@@ -25,5 +43,8 @@ int getIconIndex(uint32_t encoderValue);
 
 extern int buttonState;
 extern int currentDisplayMode;
+extern volatile int currentIconIndex;
+extern volatile uint8_t inMenu;
+
 
 #endif // USER_INTERFACE_H

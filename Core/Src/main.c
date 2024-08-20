@@ -93,7 +93,7 @@ extern DFRobot_ENS160_I2C ens160;
 int counter = 1;
 float batteryLevel = 0;
 
-
+volatile uint8_t inMenu = 0; 
 
 Epd epd;
 Paint paint;
@@ -480,187 +480,108 @@ int main(void)
 
 
 
-  while (1)
-  {
-    read_and_print_ens160_data();
-
-print_sensor_data_bme280(p_bme280);
-
-
-
-
-read_adc_values();
-
-
-
-
-
-
-    uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-    int iconIndex = getIconIndex(encoderValue);
-      currentIconIndex = getIconIndex(encoderValue); 
-    // Użycie zmiennej do śledzenia ostatniej wartości iconIndex
-
-    Paint_Clear(&paint, UNCOLORED);
-
-    DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
-
-    uint8_t bat_percentage = read_soc(&hi2c1);
-
-    char buffer_bat_percentage[100];
-
-    Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
-
-    snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
-    Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
-    batteryLevel = bat_percentage;
-
-    // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
-
-    // Rysowanie linii poziomej
-    // Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
-
-    // Rysowanie obiektów
-    Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
-
-    Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
-
-    uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
-
-    char buffer_tvoc[20]; // Adjust the buffer size as needed
-
-    Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
-    snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
-    Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc, &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 340, 102, "ppm", &Font16, COLORED);
-
-    Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
-
-    uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
-    char buffer_CO2[300];
-    snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
-    Paint_DrawStringAt(&paint, 20, 100, buffer_CO2, &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 18, 80, "CO2", &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 64, 103, "ppm", &Font16, COLORED);
-
-    Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
-
-    // Obliczanie środka geometrycznego czterech obiektów
-    int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
-    int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
-
-    // Ustawienia dla pierścienia
-    int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
-
-    // Rysowanie centralnego pierścienia
-    Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
-
-uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
-char buffer_AQI[100];
-snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
-Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
-Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
-
-int32_t temp_raw = 0;
-int32_t pressure_raw = 0;
-int32_t humidity_raw = 0;
-
-// Odczyt surowych danych z czujnika BME280
-if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
+while (1)
 {
-    // Kompensacja temperatury
-    int32_t bme280_temp = bme280_compensate_temperature_int32(temp_raw);
-    float temperature_celsius = bme280_temp / 100.0;  // Zamiana na stopnie Celsjusza
-    
-    // Kompensacja wilgotności
-    uint32_t bme280_humidity = bme280_compensate_humidity_int32(humidity_raw);
-    float humidity_percentage = bme280_humidity / 1024.0;  // Zamiana na % wilgotności
-    
-    // Tworzenie buforów dla wyświetlania temperatury i wilgotności
-    char buffer_TEMP[50];
-    char buffer_HUM[50];
-    snprintf(buffer_TEMP, sizeof(buffer_TEMP), "%.2f", temperature_celsius);
-    snprintf(buffer_HUM, sizeof(buffer_HUM), "%.2f", humidity_percentage);
-    
-    // Pozycje dla T: i H:
-    int line_y = center_y + 40;  // Pozycja Y dla wyświetlania tekstu pod AQI
-
-    // Wyświetlanie temperatury i wilgotności na tej samej linii poziomej, pod AQI
-    Paint_DrawStringAt(&paint, center_x - 60, line_y - 20, "T:", &Font16, 400);
-    Paint_DrawStringAt(&paint, center_x - 60, line_y, buffer_TEMP, &Font16, 400);
-    
-    Paint_DrawStringAt(&paint, center_x + 20, line_y - 20, "H:", &Font16, 400);
-    Paint_DrawStringAt(&paint, center_x + 20, line_y, buffer_HUM, &Font16, 400);
-}
-else
-{
-    // Obsługa błędu, jeśli odczyt danych się nie powiódł
-    Paint_DrawStringAtCenter(&paint, center_y + 40, "Error", &Font16, 400);
-}
-
-
-
-
-
-    /*
-
-
-    int32_t temp_raw, pressure_raw, humidity_raw;
-    bme280_set_power_mode(BME280_FORCED_MODE);
-
-     int32_t v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
-            int32_t  v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
-            int32_t  v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
-
-
-
-       char buffer_temp[100];
-     char buffer_press[100];
-     char buffer_hum[100];
-
-    snprintf(buffer_temp, sizeof(buffer_temp), "%d", v_comp_temp_s32);
-    snprintf(buffer_press, sizeof(buffer_press), "%d", v_comp_press_u32);
-
-    snprintf(buffer_hum, sizeof(buffer_hum), "%d", v_comp_humidity_u32);
-
-
-
-
-    Paint_DrawStringAtCenter(&paint, center_y, v_comp_humidity_u32, &Font20, 300);
-    Paint_DrawStringAtCenter(&paint, center_y-20, "Tem:", &Font20, 300);
-
-
-
-                                
-
-     */
-
-    // int r_height = 30;
-    // Paint_DrawLineWithThickness(&paint, x0_left, y0_bottom + height + 16 + r_height + vertical_gap, x0_left + height, y0_bottom + height + 16 + r_height + vertical_gap, thickness, COLORED);
-
-    DisplayBottomSection(&paint, iconIndex);
-
-    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
-
-    HAL_Delay(10); // Opóźnienie 1 ms
-
-    // Zwiększenie licznika impulsów
-    loopCounter++;
-
-    // Sprawdzanie, czy licznik osiągnął 180
-    if (loopCounter >= 180)
+    if (!inMenu)
     {
-      Epd_Clear(&epd); // Pełny reset ekranu
-      Paint_Clear(&paint, UNCOLORED);
-      Epd_DisplayFull(&epd, Paint_GetImage(&paint));
 
-      loopCounter = 0; // Zresetowanie licznika impulsów
+      
+        read_and_print_ens160_data();
+
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int iconIndex = getIconIndex(encoderValue);
+        currentIconIndex = iconIndex; // Aktualizacja globalnej zmiennej
+
+        Paint_Clear(&paint, UNCOLORED);
+
+        DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
+
+        uint8_t bat_percentage = read_soc(&hi2c1);
+
+        char buffer_bat_percentage[100];
+  batteryLevel = bat_percentage;
+        Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
+
+        snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
+        Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
+        // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+
+        // Rysowanie linii poziomej
+        // Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
+
+        // Rysowanie obiektów
+        Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
+
+        Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
+
+        uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
+
+        char buffer_tvoc[20]; // Adjust the buffer size as needed
+
+        Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
+        snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
+        Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc, &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 340, 102, "ppm", &Font16, COLORED);
+
+        Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
+
+        uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
+        char buffer_CO2[300];
+        snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
+        Paint_DrawStringAt(&paint, 20, 100, buffer_CO2, &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 18, 80, "CO2", &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 64, 103, "ppm", &Font16, COLORED);
+
+        Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
+
+        // Obliczanie środka geometrycznego czterech obiektów
+        int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
+        int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
+
+        // Ustawienia dla pierścienia
+        int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
+
+        // Rysowanie centralnego pierścienia
+        Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
+
+        uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
+        char buffer_AQI[100];
+        snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
+        Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
+        Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
+
+        DisplayBottomSection(&paint, iconIndex);
+
+        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+        HAL_Delay(10); // Opóźnienie 1 ms
+
+        // Zwiększenie licznika impulsów
+        loopCounter++;
+
+        // Sprawdzanie, czy licznik osiągnął 180
+        if (loopCounter >= 180)
+        {
+            Epd_Clear(&epd); // Pełny reset ekranu
+            Paint_Clear(&paint, UNCOLORED);
+            Epd_DisplayFull(&epd, Paint_GetImage(&paint));
+
+            loopCounter = 0; // Zresetowanie licznika impulsów
+        }
     }
+}
+
+
+
+
+
+
+
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+  
 
   /* USER CODE END 3 */
 }
@@ -1107,7 +1028,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             {
                 case 1:
                     printf("Przechodzę do menu 1\n");
-                     UI_HandleButtonPress_1();
+                        ShowMenu1();
                     break;
                 case 2:
                     printf("Przechodzę do menu 2\n");
