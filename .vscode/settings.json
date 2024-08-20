@@ -13,6 +13,10 @@
         "epd4in2b.h": "c",
         "compare": "c",
         "stdlib.h": "c",
-        "fonts.h": "c"
+        "fonts.h": "c",
+        "epdpaint.h": "c",
+        "globals.h": "c",
+        "imagedata.h": "c",
+        "stdbool.h": "c"
     }
 }

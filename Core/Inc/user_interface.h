@@ -2,6 +2,7 @@
 #define USER_INTERFACE_H
 
 #include "main.h"
+#include "globals.h"
 #include "epdpaint.h"
 #define COLORED     1
 #define UNCOLORED   0
@@ -21,10 +22,10 @@ void ShowMenu8(void);
 
 
 
+bool is_button_pressed(void);
 
 
-
-
+const char* getMonthStr(uint8_t month);
 void UI_HandleButtonPress_2(void); 
 void UI_HandleButtonPress_3(void); 
 void UI_HandleButtonPress_4(void); 

@@ -3,6 +3,7 @@
 #include "fonts.h"
 #include "imagedata.h"
 #include <stdio.h>
+#include "globals.h"
 
 #include "epdpaint.h"
 
@@ -12,34 +13,68 @@ uint32_t lastDebounceTime = 0;
 
 int currentDisplayMode = COLORED;
 
+
+extern RTC_HandleTypeDef hrtc;
+extern RTC_TimeTypeDef time;
+extern RTC_DateTypeDef date;
+
 extern Paint paint;
 extern Epd epd;
+
+extern RTC_HandleTypeDef hrtc;
+extern TIM_HandleTypeDef htim2;
+
+
+
+
 
 void ShowMenu1(void)
 {
     printf("1 przycisk jest wcisniety!\n");
-    // Wyświetlenie treści menu 1
-    Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 1 menu!", &Font20, 400);
-    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+    // Inicjalizacja licznika
+    int counter = 1;
+    char buffer[50];  // Bufor na tekst do wyświetlenia
+
+    // Pętla while, która będzie działać dopóki jesteśmy w menu
+    while (inMenu)
+    {
+        // Czyszczenie ekranu
+        Paint_Clear(&paint, UNCOLORED);
+
+        // Generowanie tekstu z aktualną wartością licznika
+        snprintf(buffer, sizeof(buffer), "Counter: %d", counter);
+
+        // Wyświetlanie licznika na ekranie
+        Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, buffer, &Font20, 400);
+        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+        // Zwiększenie licznika
+        counter++;
+
+        // Opóźnienie, aby zmiany były widoczne
+        HAL_Delay(1000);
+
+        
+    }
 }
+
 
 void ShowMenu2(void)
 {
-    printf("Wyświetlanie Menu 2\n");
-    // Wyświetlenie treści menu 2
-    Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 2 menu!", &Font20, 400);
-    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+while (inMenu)
+    {
+
+
+HAL_Delay(200);
 }
+}
+
+
 
 void ShowMenu3(void)
 {
-    printf("Wyświetlanie Menu 3\n");
-    // Wyświetlenie treści menu 3
-    Paint_Clear(&paint, UNCOLORED);
-    Paint_DrawStringAtCenter(&paint, EPD_HEIGHT/2, "Hello from 3 menu!", &Font20, 400);
-    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+    
 }
 
 void ShowMenu4(void)
@@ -100,16 +135,51 @@ void ShowMenu8(void)
 
 void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int counter, uint8_t batteryLevel)
 {
-    char buffer_top[100];
-    snprintf(buffer_top, sizeof(buffer_top), "I%d, E:%d", iconIndex, encoderValue);
-    Paint_DrawStringAt(paint, 150, 5, buffer_top, &Font20, COLORED);
+    // Pobierz czas i datę
+    HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BIN);
 
-    snprintf(buffer_top, sizeof(buffer_top), "%d", counter);
-    Paint_DrawStringAt(paint, 10, 5, buffer_top, &Font20, COLORED);
+    // Formatowanie daty i czasu
+    char dateStr[30];
+    snprintf(dateStr, sizeof(dateStr), "%02d %s %04d", date.Date, getMonthStr(date.Month), 2000 + date.Year);
 
-    DrawBattery(paint, 350, 2, 32, 24, batteryLevel,COLORED);
-  //  DrawBatteryLevel(paint, 350, 2, 30, 24, batteryLevel, COLORED);
+    char timeStr[10];
+    snprintf(timeStr, sizeof(timeStr), "%02d:%02d:%02d", time.Hours, time.Minutes, time.Seconds);
+
+    // Wyświetl datę po lewej stronie
+    Paint_DrawStringAt(paint, 10, 5, dateStr, &Font20, COLORED);
+
+    // Wyświetl czas na środku na górze
+    Paint_DrawStringAtCenter(paint, 20, timeStr, &Font20, COLORED);
+
+    // Narysuj ikonę baterii na górze po prawej stronie
+    DrawBattery(paint, 350, 2, 32, 24, batteryLevel, COLORED);
 }
+
+
+const char* getMonthStr(uint8_t month)
+{
+    switch (month)
+    {
+        case 1: return "sty";
+        case 2: return "lut";
+        case 3: return "mar";
+        case 4: return "kwi";
+        case 5: return "maj";
+        case 6: return "cze";
+        case 7: return "lip";
+        case 8: return "sie";
+        case 9: return "wrz";
+        case 10: return "paź";
+        case 11: return "lis";
+        case 12: return "gru";
+        default: return "???";
+    }
+}
+
+
+
+
 
 void DisplayMiddleSection(Paint *paint)
 {

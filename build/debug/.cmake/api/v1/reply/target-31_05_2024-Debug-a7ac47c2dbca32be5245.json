@@ -189,7 +189,9 @@
 				46,
 				47,
 				48,
-				49
+				49,
+				50,
+				51
 			]
 		},
 		{
@@ -272,7 +274,7 @@
 			"language" : "ASM",
 			"sourceIndexes" : 
 			[
-				50
+				52
 			]
 		}
 	],
@@ -354,14 +356,16 @@
 				46,
 				47,
 				48,
-				49
+				49,
+				50,
+				51
 			]
 		},
 		{
 			"name" : "",
 			"sourceIndexes" : 
 			[
-				50
+				52
 			]
 		}
 	],
@@ -581,6 +585,18 @@
 			"backtrace" : 2,
 			"compileGroupIndex" : 0,
 			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_exti.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc_ex.c",
 			"sourceGroupIndex" : 0
 		},
 		{
