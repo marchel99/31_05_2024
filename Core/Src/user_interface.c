@@ -656,8 +656,8 @@ void EditYearSetting(void)
         previousEncoderValue = encoderValue;
 
         // Dynamiczne skalowanie zmiany
-        if (encoderChange > 15) encoderChange = encoderChange * 2;
-        else if (encoderChange < -15) encoderChange = encoderChange * 2;
+        if (encoderChange > 25) encoderChange = encoderChange * 2;
+        else if (encoderChange < -25) encoderChange = encoderChange * 2;
 
         // Aktualizuj currentYear w zależności od zmiany wartości enkodera
         if (encoderChange != 0) {
@@ -720,6 +720,16 @@ void EditYearSetting(void)
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
