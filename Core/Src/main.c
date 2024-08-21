@@ -588,7 +588,7 @@ read_adc_values();
         int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
         int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
 
-        // Ustawienia dla pierścienia
+        
         int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
 
         // Rysowanie centralnego pierścienia
@@ -599,6 +599,71 @@ read_adc_values();
         snprintf(buffer_AQI, sizeof(buffer_AQI), "%d", aqi);
         Paint_DrawStringAtCenter(&paint, center_y, buffer_AQI, &Font20, 400);
         Paint_DrawStringAtCenter(&paint, center_y - 20, "AQI:", &Font20, 400);
+
+
+
+
+
+
+
+
+
+
+int32_t temp_raw = 0;
+int32_t pressure_raw = 0;
+int32_t humidity_raw = 0;
+
+// Odczyt surowych danych z czujnika BME280
+if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
+{
+    // Kompensacja temperatury
+    int32_t bme280_temp = bme280_compensate_temperature_int32(temp_raw);
+    float temperature_celsius = bme280_temp / 100.0;  // Zamiana na stopnie Celsjusza
+    
+    // Kompensacja wilgotności
+    uint32_t bme280_humidity = bme280_compensate_humidity_int32(humidity_raw);
+    float humidity_percentage = bme280_humidity / 1024.0;  // Zamiana na % wilgotności
+    
+    // Tworzenie buforów dla wyświetlania temperatury i wilgotności
+    char buffer_TEMP[50];
+    char buffer_HUM[50];
+    snprintf(buffer_TEMP, sizeof(buffer_TEMP), "%.2f", temperature_celsius);
+    snprintf(buffer_HUM, sizeof(buffer_HUM), "%.2f", humidity_percentage);
+    
+    // Pozycje dla T: i H:
+    int line_y = center_y + 40;  // Pozycja Y dla wyświetlania tekstu pod AQI
+
+    // Wyświetlanie temperatury i wilgotności na tej samej linii poziomej, pod AQI
+    Paint_DrawStringAt(&paint, center_x - 60, line_y - 20, "T:", &Font16, 400);
+    Paint_DrawStringAt(&paint, center_x - 60, line_y, buffer_TEMP, &Font16, 400);
+    
+    Paint_DrawStringAt(&paint, center_x + 20, line_y - 20, "H:", &Font16, 400);
+    Paint_DrawStringAt(&paint, center_x + 20, line_y, buffer_HUM, &Font16, 400);
+}
+else
+{
+    // Obsługa błędu, jeśli odczyt danych się nie powiódł
+    Paint_DrawStringAtCenter(&paint, center_y + 40, "Error", &Font16, 400);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         DisplayBottomSection(&paint, iconIndex);
 

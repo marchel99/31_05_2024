@@ -4,8 +4,9 @@
 #include "imagedata.h"
 #include <stdio.h>
 #include "globals.h"
+#include <stdlib.h>
 #include <string.h>
-
+#include <math.h>
 #include "epdpaint.h"
 
 
@@ -22,7 +23,6 @@ extern RTC_HandleTypeDef hrtc;
 extern RTC_TimeTypeDef time;
 extern RTC_DateTypeDef date;
 
-int currentHour = 0;
 
 
 
@@ -80,7 +80,6 @@ void ShowMenu2(void)
 }
 
 
-
 void ShowMenu3(void)
 {
     printf("3 przycisk jest wcisniety!\n");
@@ -92,137 +91,131 @@ void ShowMenu3(void)
 
     while (inMenu)
     {
-  if (!isEditing) // Jeśli nie jesteśmy w trybie edycji
+        if (!isEditing) // Jeśli nie jesteśmy w trybie edycji
         {
+            Paint_Clear(&paint, UNCOLORED);
 
+            uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+            int encoderDirection = encoderValue > previousEncoderValue ? 1 : (encoderValue < previousEncoderValue ? -1 : 0);
+            previousEncoderValue = encoderValue;
 
-        Paint_Clear(&paint, UNCOLORED);
+            // Aktualizuj encoderPosition z zawijaniem
+            if (encoderDirection != 0) {
+                encoderPosition += encoderDirection;
 
-        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderDirection = encoderValue > previousEncoderValue ? 1 : (encoderValue < previousEncoderValue ? -1 : 0);
-        previousEncoderValue = encoderValue;
+                if (encoderPosition < 1) {
+                    encoderPosition = 5; // Zawijanie z 1 na 5
+                } else if (encoderPosition > 5) {
+                    encoderPosition = 1; // Zawijanie z 5 na 1
+                }
 
-        // Aktualizuj encoderPosition z zawijaniem
-        if (encoderDirection != 0) {
-            encoderPosition += encoderDirection;
-
-            if (encoderPosition < 1) {
-                encoderPosition = 5; // Zawijanie z 1 na 5
-            } else if (encoderPosition > 5) {
-                encoderPosition = 1; // Zawijanie z 5 na 1
+                // Zresetuj licznik migania przy zmianie pozycji
+                blinkCounter = 0;
             }
 
-            // Zresetuj licznik migania przy zmianie pozycji
-            blinkCounter = 0;
+            // Pobierz aktualny czas i datę z RTC
+            RTC_TimeTypeDef currentTime;
+            RTC_DateTypeDef currentDate;
+            HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN);
+            HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN);
+
+
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+
+            char buffer_minute[10];
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
+
+
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+
+
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            HAL_Delay(50);
+
+            // Miganie wybranej pozycji
+            switch (encoderPosition)
+            {
+                case 0:
+                    break;
+                case 1:
+                    Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, UNCOLORED);
+                    break;
+                case 2:
+                    Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, UNCOLORED);
+                    break;
+                case 3:
+                    Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, UNCOLORED);
+                    break;
+                case 4:
+                    Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, UNCOLORED);
+                    break;
+                case 5:
+                    Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, UNCOLORED);
+                    break;
+                default:
+                    break;
+            }
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            // Zliczaj iteracje migania
+            if (encoderPosition != 0) {
+                blinkCounter++;
+            }
+
+            if (blinkCounter >= 4) {
+                encoderPosition = 0;
+                blinkCounter = 0;
+            }
         }
-
-        char buffer_top[100];
-        snprintf(buffer_top, sizeof(buffer_top), "E:%d", encoderPosition);
-        Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
-
-        Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
-
-        Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 215, 100, "54", &Font20, COLORED);
-
-        Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
-
-        Paint_DrawStringAt(&paint, 130, 200, "21", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 150, 200, " sie", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, COLORED);
-
-        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
-
-        HAL_Delay(50);
-
-        // Miganie wybranej pozycji
-        switch (encoderPosition)
-        {
-            case 0:
-                break;
-            case 1:
-                Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, UNCOLORED);
-                break;
-            case 2:
-                Paint_DrawStringAt(&paint, 215, 100, "54", &Font20, UNCOLORED);
-                break;
-            case 3:
-                Paint_DrawStringAt(&paint, 130, 200, "21", &Font20, UNCOLORED);
-                break;
-            case 4:
-                Paint_DrawStringAt(&paint, 150, 200, " sie", &Font20, UNCOLORED);
-                break;
-            case 5:
-                Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, UNCOLORED);
-                break;
-            default:
-                break;
-        }
-
-        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
-
-        // Zliczaj iteracje migania
-        if (encoderPosition != 0) {
-            blinkCounter++;
-        }
-
-        // Jeśli licznik osiągnie 3, zresetuj encoderPosition
-        if (blinkCounter >= 3) {
-            encoderPosition = 0;
-            blinkCounter = 0;
-        }
-
-        
-    }
- else
+        else
         {
             // Jeśli jesteśmy w trybie edycji, czekamy na zakończenie edycji
-            // (Możesz dodać dodatkowe warunki do zakończenia edycji)
-            printf("ed");
-             switch (encoderPosition)
-    {
-        case 0:
-            isEditing=0;
-             break;
-        case 1:
-            // Logika edycji godziny
-            EditHourSetting();
-            break;
-        case 2:
-            // Logika edycji minut
-            EditMinuteSetting();
-            break;
-        case 3:
-            // Logika edycji dnia
-            EditDaySetting();
-            break;
-        case 4:
-            // Logika edycji miesiąca
-            EditMonthSetting();
-            break;
-        case 5:
-            // Logika edycji roku
-            EditYearSetting();
-            break;
-        default:
-            isEditing=0;
-            break;
-    }
+            switch (encoderPosition)
+            {
+                case 0:
+                    isEditing = 0;
+                    break;
+                case 1:
+                    EditHourSetting();
+                    break;
+                case 2:
+                    EditMinuteSetting();
+                    break;
+                case 3:
+                    EditDaySetting();
+                    break;
+                case 4:
+                    EditMonthSetting();
+                    break;
+                case 5:
+                    EditYearSetting();
+                    break;
+                default:
+                    isEditing = 0;
+                    break;
+            }
         }
-
-
-
     }
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -243,24 +236,32 @@ void EditMenu3Setting()
 
 
 
-
-
-
 void EditHourSetting(void)
 {
     printf("Edycja godzin\n");
+
     uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
-    int currentHour = 0;  // Początkowa godzina
-    Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, UNCOLORED);
+    RTC_TimeTypeDef currentTime;
+    RTC_DateTypeDef currentDate;
+    HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnej godziny i minut
+   
+    HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
+    int currentHour = currentTime.Hours;  // Inicjalizacja godziny
+
+    // Wyświetl początkową godzinę
+    char buffer_hour[10];
+    snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+    Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderDirection = encoderValue > previousEncoderValue ? 1 : (encoderValue < previousEncoderValue ? -1 : 0);
+        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Aktualizuj currentHour w zależności od kierunku enkodera
-        if (encoderDirection != 0) {
-            currentHour += encoderDirection;
+        // Aktualizuj currentHour w zależności od zmiany wartości enkodera
+        if (encoderChange != 0) {
+            currentHour += encoderChange;
 
             // Zawijanie wartości godziny w zakresie 0-23
             if (currentHour < 0) {
@@ -269,51 +270,55 @@ void EditHourSetting(void)
                 currentHour = 0;
             }
 
-            // Wypisz aktualną wartość godziny po zmianie
+            // Wyświetl aktualną wartość godziny po zmianie
             printf("Aktualna godzina: %02d\n", currentHour);
 
             // Aktualizuj wyświetlacz
             Paint_Clear(&paint, UNCOLORED);
 
-            char buffer_hour[10];
             snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentHour);
+            char buffer_minute[10];
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
 
-            // Wyświetlanie zaktualizowanego czasu
             Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
-
-            char buffer_top[100];
-            snprintf(buffer_top, sizeof(buffer_top), "E:%d", encoderPosition);
-            Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
 
             Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
-
-            
-            Paint_DrawStringAt(&paint, 215, 100, "54", &Font20, COLORED);
             Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
-            Paint_DrawStringAt(&paint, 130, 200, "21", &Font20, COLORED);
-            Paint_DrawStringAt(&paint, 150, 200, " sie", &Font20, COLORED);
-            Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, COLORED);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
         }
 
-        HAL_Delay(5); // Dla debouncingu i ograniczenia częstotliwości aktualizacji
+        HAL_Delay(100); // Zwiększenie opóźnienia dla wyraźnego migania
 
         // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
         if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
             HAL_Delay(50); // Debouncing
             printf("KLIK!\n");
             isEditing = 0;  // Zakończ edycję
+
+            // Zapisz nową godzinę w systemie
+
+
+       RTC_TimeTypeDef new_time = currentTime;
+
+
+            new_time.Hours = currentHour;
+            HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nową godzinę
+            printf("Nowa godzina ustawiona na: %02d\n", currentHour);
         }
     }
-
-    // Po zakończeniu edycji, zapisz nową godzinę w systemie
-    RTC_TimeTypeDef new_time;
-    HAL_RTC_GetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Pobierz aktualny czas
-    new_time.Hours = currentHour;
-    HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nową godzinę
-    printf("Nowa godzina ustawiona na: %02d\n", currentHour);
 }
+
 
 
 
@@ -325,14 +330,103 @@ void EditHourSetting(void)
 
 void EditMinuteSetting(void)
 {
-    // Implementacja edycji minut
     printf("Edycja minut\n");
-       isEditing=0;
+
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
+    RTC_TimeTypeDef currentTime;
+    RTC_DateTypeDef currentDate;
+    HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnych minut i godzin
+    HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
+    int currentMinute = currentTime.Minutes;  // Inicjalizacja minut
+
+    // Wyświetl początkowe minuty
+    char buffer_minute[10];
+    snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+    Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+    while (isEditing) {
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        previousEncoderValue = encoderValue;
+
+        // Aktualizuj currentMinute w zależności od zmiany wartości enkodera
+        if (encoderChange != 0) {
+            currentMinute += encoderChange;
+
+            // Zawijanie wartości minut w zakresie 0-59
+            if (currentMinute < 0) {
+                currentMinute = 59;
+            } else if (currentMinute > 59) {
+                currentMinute = 0;
+            }
+
+            // Wyświetl aktualną wartość minut po zmianie
+            printf("Aktualna minuta: %02d\n", currentMinute);
+
+            // Aktualizuj wyświetlacz
+            Paint_Clear(&paint, UNCOLORED);
+
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentMinute);
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW MINUTY", &Font20, 400);
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        }
+
+        HAL_Delay(100); // Zwiększenie opóźnienia dla wyraźnego migania
+
+        // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
+        if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
+            HAL_Delay(50); // Debouncing
+            printf("KLIK!\n");
+            isEditing = 0;  // Zakończ edycję
+
+            // Zapisz nowe minuty w systemie, zerując sekundy
+           RTC_TimeTypeDef new_time = currentTime;
+new_time.Minutes = currentMinute;
+
+          
+            new_time.Seconds = 0; // Zerowanie sekund
+            HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nowe minuty
+            printf("Nowa minuta ustawiona na: %02d\n", currentMinute);
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void EditDaySetting(void)
 {
-    // Implementacja edycji dnia
     printf("Edycja dnia\n");
 
 
@@ -340,31 +434,292 @@ void EditDaySetting(void)
 
 
 
-       isEditing=0;
+
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
+    RTC_DateTypeDef currentDate;
+    RTC_TimeTypeDef currentTime;
+
+    HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
+    HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnego czasu
+    int currentDay = currentDate.Date;  // Inicjalizacja dnia
+
+    // Pobierz maksymalną liczbę dni dla bieżącego miesiąca
+    int maxDay = 31;
+    if (currentDate.Month == 2) {
+        // Luty, sprawdzamy, czy rok jest przestępny
+        maxDay = (currentDate.Year % 4 == 0 && (currentDate.Year % 100 != 0 || currentDate.Year % 400 == 0)) ? 29 : 28;
+    } else if (currentDate.Month == 4 || currentDate.Month == 6 || currentDate.Month == 9 || currentDate.Month == 11) {
+        // Kwiecień, czerwiec, wrzesień, listopad
+        maxDay = 30;
+    }
+
+
+
+
+
+  char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+
+
+    while (isEditing) {
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        previousEncoderValue = encoderValue;
+
+        // Aktualizuj currentDay w zależności od zmiany wartości enkodera
+        if (encoderChange != 0) {
+            currentDay += encoderChange;
+
+            // Zawijanie wartości dnia w zakresie 1-maxDay
+            if (currentDay < 1) {
+                currentDay = maxDay;
+            } else if (currentDay > maxDay) {
+                currentDay = 1;
+            }
+
+            // Wyświetl aktualną wartość dnia po zmianie
+            printf("Aktualny dzień: %02d\n", currentDay);
+
+            // Aktualizuj wyświetlacz
+            Paint_Clear(&paint, UNCOLORED);
+
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDay);
+
+            // Wyświetlanie zaktualizowanego dnia
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+
+            // Wyświetlanie pozostałych elementów
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+            char buffer_minute[10];
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+
+Paint_DrawStringAtCenter(&paint, 150, "USTAW DZIEN", &Font20, 400);
+
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        }
+
+        HAL_Delay(100); // Opóźnienie
+
+        // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
+        if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
+            HAL_Delay(50); // Debouncing
+            printf("KLIK!\n");
+            isEditing = 0;  // Zakończ edycję
+
+            // Zapisz nowy dzień w systemie
+            RTC_DateTypeDef new_date = {0};
+            HAL_RTC_GetDate(&hrtc, &new_date, RTC_FORMAT_BIN);
+            new_date.Date = currentDay;
+            HAL_RTC_SetDate(&hrtc, &new_date, RTC_FORMAT_BIN); // Zapisz nowy dzień
+            printf("Nowy dzień ustawiony na: %02d\n", currentDay);
+        }
+    }
 }
+
+
 
 void EditMonthSetting(void)
 {
-    // Implementacja edycji miesiąca
     printf("Edycja miesiąca\n");
-       isEditing=0;
+
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
+    RTC_DateTypeDef currentDate;
+    RTC_TimeTypeDef currentTime;
+
+    HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
+    HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnego czasu
+    int currentMonth = currentDate.Month;  // Inicjalizacja miesiąca
+
+
+
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+
+        
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+
+
+
+
+
+
+    while (isEditing) {
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        previousEncoderValue = encoderValue;
+
+        // Aktualizuj currentMonth w zależności od zmiany wartości enkodera
+        if (encoderChange != 0) {
+            currentMonth += encoderChange;
+
+            // Zawijanie wartości miesiąca w zakresie 1-12
+            if (currentMonth < 1) {
+                currentMonth = 12;
+            } else if (currentMonth > 12) {
+                currentMonth = 1;
+            }
+
+            // Wyświetl aktualną wartość miesiąca po zmianie
+            printf("Aktualny miesiąc: %02d\n", currentMonth);
+
+            // Aktualizuj wyświetlacz
+            Paint_Clear(&paint, UNCOLORED);
+
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentMonth));
+
+            // Wyświetlanie zaktualizowanego miesiąca
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+
+            // Wyświetlanie pozostałych elementów
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+            char buffer_minute[10];
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+
+
+
+   Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+   Paint_DrawStringAtCenter(&paint, 150, "USTAW MIESIAC", &Font20, 400);
+          
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        }
+
+        HAL_Delay(100); // Opóźnienie
+
+        // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
+        if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
+            HAL_Delay(50); // Debouncing
+            printf("KLIK!\n");
+            isEditing = 0;  // Zakończ edycję
+
+            // Zapisz nowy miesiąc w systemie
+            RTC_DateTypeDef new_date = {0};
+            HAL_RTC_GetDate(&hrtc, &new_date, RTC_FORMAT_BIN);
+            new_date.Month = currentMonth;
+            HAL_RTC_SetDate(&hrtc, &new_date, RTC_FORMAT_BIN); // Zapisz nowy miesiąc
+            printf("Nowy miesiąc ustawiony na: %02d\n", currentMonth);
+        }
+    }
 }
 
 void EditYearSetting(void)
 {
-    // Implementacja edycji roku
     printf("Edycja roku\n");
-       isEditing=0;
+
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
+    RTC_DateTypeDef currentDate;
+    RTC_TimeTypeDef currentTime;
+
+    HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
+    HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnego czasu
+    int currentYear = 2000 + currentDate.Year;  // Inicjalizacja roku
+
+    char buffer_year[10];
+    snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+    Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+    while (isEditing) {
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        previousEncoderValue = encoderValue;
+
+        // Dynamiczne skalowanie zmiany
+        if (encoderChange > 15) encoderChange = encoderChange * 2;
+        else if (encoderChange < -15) encoderChange = encoderChange * 2;
+
+        // Aktualizuj currentYear w zależności od zmiany wartości enkodera
+        if (encoderChange != 0) {
+            currentYear += encoderChange;
+
+            // Zawijanie wartości roku w zakresie 2000-2099
+            if (currentYear < 2000) {
+                currentYear = 2099;
+            } else if (currentYear > 2099) {
+                currentYear = 2000;
+            }
+
+            // Wyświetl aktualną wartość roku po zmianie
+            printf("Aktualny rok: %d\n", currentYear);
+
+            // Aktualizuj wyświetlacz
+            Paint_Clear(&paint, UNCOLORED);
+
+            char buffer_year[10];
+            snprintf(buffer_year, sizeof(buffer_year), "%d", currentYear);
+
+            // Wyświetlanie zaktualizowanego roku
+            Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
+
+            // Wyświetlanie pozostałych elementów
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentTime.Hours);
+            char buffer_minute[10];
+            snprintf(buffer_minute, sizeof(buffer_minute), "%02d", currentTime.Minutes);
+            char buffer_day[10];
+            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+            char buffer_month[10];
+            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
+
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW ROK", &Font20, 400);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        }
+
+        HAL_Delay(100); // Opóźnienie
+
+        // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
+        if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
+            HAL_Delay(50); // Debouncing
+            printf("KLIK!\n");
+            isEditing = 0;  // Zakończ edycję
+
+            // Zapisz nowy rok w systemie
+            RTC_DateTypeDef new_date = {0};
+            HAL_RTC_GetDate(&hrtc, &new_date, RTC_FORMAT_BIN);
+            new_date.Year = currentYear - 2000;
+            HAL_RTC_SetDate(&hrtc, &new_date, RTC_FORMAT_BIN); // Zapisz nowy rok
+            printf("Nowy rok ustawiony na: %d\n", currentYear);
+        }
+    }
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -493,7 +848,7 @@ void DisplayBottomSection(Paint *paint, int iconIndex)
     const char *iconDescriptions[] = {
         "Wykresy",     // Opis dla ikony 1
         "Wilgotnosc",  // Opis dla ikony 2
-        "Slonce",      // Opis dla ikony 3
+        "Data i Czas",      // Opis dla ikony 3
         "Lisc",        // Opis dla ikony 4
         "Pomiary",     // Opis dla ikony 5
         "Tryb ciemny", // Opis dla ikony 6
