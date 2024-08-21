@@ -65,29 +65,38 @@ void ShowMenu2(void)
 
 
 
-
-
-
+int encoderPosition = 0; // Zmienna globalna, inicjalizowana przy starcie
 
 void ShowMenu3(void)
 {
-
     printf("3 przycisk jest wcisniety!\n");
+
+    encoderPosition = 0; // Ustaw wartość na 0 przy wejściu do funkcji
+
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
 
     while (inMenu)
     {
-
         Paint_Clear(&paint, UNCOLORED);
 
-  uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
- char buffer_top[100];
-    snprintf(buffer_top, sizeof(buffer_top), "E:%ld",  encoderValue);
-    Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderDirection = encoderValue > previousEncoderValue ? 1 : (encoderValue < previousEncoderValue ? -1 : 0);
+        previousEncoderValue = encoderValue;
 
+        // Aktualizuj encoderPosition z zawijaniem
+        if (encoderDirection != 0) {
+            encoderPosition += encoderDirection;
 
+            if (encoderPosition < 1) {
+                encoderPosition = 5; // Zawijanie z 1 na 5
+            } else if (encoderPosition > 5) {
+                encoderPosition = 1; // Zawijanie z 5 na 1
+            }
+        }
 
-
-
+        char buffer_top[100];
+        snprintf(buffer_top, sizeof(buffer_top), "E:%d",  encoderPosition);
+        Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
 
         Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
 
@@ -101,11 +110,42 @@ void ShowMenu3(void)
         Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, COLORED);
 
         Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+
+
+HAL_Delay(50);
+  switch (encoderPosition)
+        {
+                 case 0:
+                 break;
+            case 1:
+                Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, UNCOLORED);
+                break;
+            case 2:
+                Paint_DrawStringAt(&paint, 215, 100, "54", &Font20, UNCOLORED);
+                break;
+            case 3:
+                Paint_DrawStringAt(&paint, 130, 200, "21", &Font20, UNCOLORED);
+                break;
+            case 4:
+                Paint_DrawStringAt(&paint, 150, 200, " sie", &Font20, UNCOLORED);
+                break;
+            case 5:
+                Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, UNCOLORED);
+                break;
+            default:
+                break;
+        }
+
+
+      Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+
+
+
+
     }
 }
-
-
-
 
 
 
