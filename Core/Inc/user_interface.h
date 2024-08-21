@@ -27,7 +27,21 @@ bool is_button_pressed(void);
 
 const char* getMonthStr(uint8_t month);
 void UI_HandleButtonPress_2(void); 
+
+
+void AdjustValue(int);
 void UI_HandleButtonPress_3(void); 
+int CanExitMenu3(void);
+void EditMenu3Setting();
+void EditHourSetting(void);
+void EditMinuteSetting(void);
+void EditDaySetting(void);
+void EditMonthSetting(void);
+void EditYearSetting(void);
+
+
+
+
 void UI_HandleButtonPress_4(void); 
 void UI_HandleButtonPress_5(void); 
 void UI_HandleButtonPress_6(void); 

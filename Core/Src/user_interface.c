@@ -8,6 +8,10 @@
 
 #include "epdpaint.h"
 
+
+int encoderPosition = 0; // Zmienna globalna, inicjalizowana przy starcie
+
+
 int buttonState = 0;
 int lastButtonState = 0;
 uint32_t lastDebounceTime = 0;
@@ -18,14 +22,26 @@ extern RTC_HandleTypeDef hrtc;
 extern RTC_TimeTypeDef time;
 extern RTC_DateTypeDef date;
 
+int currentHour = 0;
+
+
+
+bool isEditing = false; 
+
+
 extern Paint paint;
 extern Epd epd;
 
 extern RTC_HandleTypeDef hrtc;
 extern TIM_HandleTypeDef htim2;
 
+
+extern int (*canExitMenu)(void);
+
+
 void ShowMenu1(void)
 {
+    
     printf("1 przycisk jest wcisniety!\n");
 
     // Inicjalizacja licznika
@@ -65,18 +81,21 @@ void ShowMenu2(void)
 
 
 
-int encoderPosition = 0; // Zmienna globalna, inicjalizowana przy starcie
-
 void ShowMenu3(void)
 {
     printf("3 przycisk jest wcisniety!\n");
 
     encoderPosition = 0; // Ustaw wartość na 0 przy wejściu do funkcji
+    int blinkCounter = 0; // Dodaj licznik migania
 
     uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
 
     while (inMenu)
     {
+  if (!isEditing) // Jeśli nie jesteśmy w trybie edycji
+        {
+
+
         Paint_Clear(&paint, UNCOLORED);
 
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
@@ -92,10 +111,13 @@ void ShowMenu3(void)
             } else if (encoderPosition > 5) {
                 encoderPosition = 1; // Zawijanie z 5 na 1
             }
+
+            // Zresetuj licznik migania przy zmianie pozycji
+            blinkCounter = 0;
         }
 
         char buffer_top[100];
-        snprintf(buffer_top, sizeof(buffer_top), "E:%d",  encoderPosition);
+        snprintf(buffer_top, sizeof(buffer_top), "E:%d", encoderPosition);
         Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
 
         Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
@@ -111,13 +133,13 @@ void ShowMenu3(void)
 
         Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
+        HAL_Delay(50);
 
-
-HAL_Delay(50);
-  switch (encoderPosition)
+        // Miganie wybranej pozycji
+        switch (encoderPosition)
         {
-                 case 0:
-                 break;
+            case 0:
+                break;
             case 1:
                 Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, UNCOLORED);
                 break;
@@ -137,15 +159,210 @@ HAL_Delay(50);
                 break;
         }
 
+        Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
-      Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        // Zliczaj iteracje migania
+        if (encoderPosition != 0) {
+            blinkCounter++;
+        }
 
+        // Jeśli licznik osiągnie 3, zresetuj encoderPosition
+        if (blinkCounter >= 3) {
+            encoderPosition = 0;
+            blinkCounter = 0;
+        }
 
+        
+    }
+ else
+        {
+            // Jeśli jesteśmy w trybie edycji, czekamy na zakończenie edycji
+            // (Możesz dodać dodatkowe warunki do zakończenia edycji)
+            printf("ed");
+             switch (encoderPosition)
+    {
+        case 0:
+            isEditing=0;
+             break;
+        case 1:
+            // Logika edycji godziny
+            EditHourSetting();
+            break;
+        case 2:
+            // Logika edycji minut
+            EditMinuteSetting();
+            break;
+        case 3:
+            // Logika edycji dnia
+            EditDaySetting();
+            break;
+        case 4:
+            // Logika edycji miesiąca
+            EditMonthSetting();
+            break;
+        case 5:
+            // Logika edycji roku
+            EditYearSetting();
+            break;
+        default:
+            isEditing=0;
+            break;
+    }
+        }
 
 
 
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+int CanExitMenu3(void)
+{
+    return (encoderPosition == 0);
+
+}
+
+
+
+void EditMenu3Setting()
+
+{
+    isEditing=1;
+   
+}
+
+
+
+
+
+
+void EditHourSetting(void)
+{
+    printf("Edycja godzin\n");
+    uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
+    int currentHour = 0;  // Początkowa godzina
+    Paint_DrawStringAt(&paint, 170, 100, "00:", &Font20, UNCOLORED);
+
+    while (isEditing) {
+        uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
+        int encoderDirection = encoderValue > previousEncoderValue ? 1 : (encoderValue < previousEncoderValue ? -1 : 0);
+        previousEncoderValue = encoderValue;
+
+        // Aktualizuj currentHour w zależności od kierunku enkodera
+        if (encoderDirection != 0) {
+            currentHour += encoderDirection;
+
+            // Zawijanie wartości godziny w zakresie 0-23
+            if (currentHour < 0) {
+                currentHour = 23;
+            } else if (currentHour > 23) {
+                currentHour = 0;
+            }
+
+            // Wypisz aktualną wartość godziny po zmianie
+            printf("Aktualna godzina: %02d\n", currentHour);
+
+            // Aktualizuj wyświetlacz
+            Paint_Clear(&paint, UNCOLORED);
+
+            char buffer_hour[10];
+            snprintf(buffer_hour, sizeof(buffer_hour), "%02d:", currentHour);
+
+            // Wyświetlanie zaktualizowanego czasu
+            Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
+
+            char buffer_top[100];
+            snprintf(buffer_top, sizeof(buffer_top), "E:%d", encoderPosition);
+            Paint_DrawStringAt(&paint, 150, 5, buffer_top, &Font20, COLORED);
+
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+
+            
+            Paint_DrawStringAt(&paint, 215, 100, "54", &Font20, COLORED);
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
+            Paint_DrawStringAt(&paint, 130, 200, "21", &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 150, 200, " sie", &Font20, COLORED);
+            Paint_DrawStringAt(&paint, 200, 200, " 2024", &Font20, COLORED);
+
+            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+        }
+
+        HAL_Delay(5); // Dla debouncingu i ograniczenia częstotliwości aktualizacji
+
+        // Sprawdzenie, czy przycisk został naciśnięty, aby zakończyć edycję
+        if (HAL_GPIO_ReadPin(EN_SW_GPIO_Port, EN_SW_Pin) == GPIO_PIN_RESET) {
+            HAL_Delay(50); // Debouncing
+            printf("KLIK!\n");
+            isEditing = 0;  // Zakończ edycję
+        }
+    }
+
+    // Po zakończeniu edycji, zapisz nową godzinę w systemie
+    RTC_TimeTypeDef new_time;
+    HAL_RTC_GetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Pobierz aktualny czas
+    new_time.Hours = currentHour;
+    HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nową godzinę
+    printf("Nowa godzina ustawiona na: %02d\n", currentHour);
+}
+
+
+
+
+
+
+
+
+
+void EditMinuteSetting(void)
+{
+    // Implementacja edycji minut
+    printf("Edycja minut\n");
+       isEditing=0;
+}
+
+void EditDaySetting(void)
+{
+    // Implementacja edycji dnia
+    printf("Edycja dnia\n");
+
+
+
+
+
+
+       isEditing=0;
+}
+
+void EditMonthSetting(void)
+{
+    // Implementacja edycji miesiąca
+    printf("Edycja miesiąca\n");
+       isEditing=0;
+}
+
+void EditYearSetting(void)
+{
+    // Implementacja edycji roku
+    printf("Edycja roku\n");
+       isEditing=0;
+}
+
+
+
+
+
+
+
 
 
 

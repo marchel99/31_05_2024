@@ -40,6 +40,9 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef int (*CanExitMenuFunction)(void);
+CanExitMenuFunction canExitMenu = NULL;
+
 
 /* USER CODE END PTD */
 
@@ -82,6 +85,8 @@ float read_adc_value(void);
 int get_co_ppm(float voltage);
 
 
+// main.c lub inny plik, w którym znajduje się HAL_GPIO_EXTI_Callback
+extern int encoderPosition;
 
 volatile uint8_t buzzer_active = 0;
 volatile uint32_t last_interrupt_time = 0;
@@ -1169,9 +1174,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
             if (inMenu)
             {
-                // Wyjdź z menu
-                inMenu = 0;
-                //ReturnToMainScreen(); // Powrót do głównego ekranu
+                // Jeśli encoderPosition jest w zakresie 1-5, to ustawiamy wartości, a nie wychodzimy z menu
+                if (encoderPosition > 0 && encoderPosition <= 5)
+                {
+                    EditMenu3Setting();
+                }
+                else if (canExitMenu == NULL || canExitMenu())
+                {
+                    inMenu = 0;  // Wyjście z menu tylko, gdy encoderPosition == 0
+                }
             }
             else
             {
@@ -1194,7 +1205,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
 }
 
-
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance == TIM3)
@@ -1203,8 +1213,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_TIM_Base_Stop_IT(htim);
   }
 }
-
-
 
 
 

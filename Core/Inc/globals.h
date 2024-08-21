@@ -8,7 +8,6 @@
 
 
 
-
 extern volatile uint32_t encoderValue;
 extern volatile int updateDisplayFlag;
 
