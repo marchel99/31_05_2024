@@ -72,4 +72,6 @@ void Epd_TurnOnDisplay_Partial_Fast(Epd *epd);
 
 
 
+
+
 #endif /* EPD4IN2B_H */

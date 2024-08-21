@@ -338,7 +338,7 @@ void Paint_DrawBitmap(Paint* paint, const unsigned char* bitmap, int x, int y, i
 void Paint_DrawStringAtCenter(Paint* paint, int y, const char* text, const sFONT* font, int displayWidth) {
     int textLength = strlen(text);
     int textWidth = textLength * font->Width;
-    int centeredX = (displayWidth - textWidth) / 2;
+    int centeredX = (displayWidth - textWidth) / 2+9;
     Paint_DrawStringAt(paint, centeredX, y, text, font, COLORED);
 }
 
@@ -610,4 +610,17 @@ void Paint_Universal_Ring(Paint *paint, int x0, int y0, int width, int height, i
             Paint_DrawLineWithThickness(paint, type == 4 ? cx - radius : x0, y1 + i - thickness + 1, type == 3 ? cx + radius : x1, y1 + i - thickness + 1, 1, colored);
         }
     }
+}
+
+
+// Funkcja do rysowania tekstu z obrysem
+void Paint_DrawStringWithOutline(Paint *paint, int x, int y, const char *text, const sFONT *font, int outline_width) {
+    // Rysuj tekst białym kolorem (tło) w czterech kierunkach, aby stworzyć obrys
+    Paint_DrawStringAt(paint, x - outline_width, y, text, font, UNCOLORED); // W lewo
+    Paint_DrawStringAt(paint, x + outline_width, y, text, font, UNCOLORED); // W prawo
+    Paint_DrawStringAt(paint, x, y - outline_width, text, font, UNCOLORED); // W górę
+    Paint_DrawStringAt(paint, x, y + outline_width, text, font, UNCOLORED); // W dół
+
+    // Rysuj tekst w środku czarnym kolorem (tekst właściwy)
+    Paint_DrawStringAt(paint, x, y, text, font, COLORED);
 }

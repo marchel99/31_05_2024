@@ -587,8 +587,8 @@ int main(void)
   int offset_y = 100; // Przesunięcie pionowe
 
   // Obliczanie środka ekranu
-  int screen_center_x = EPD_WIDTH / 2+10;
-  int screen_center_y = EPD_HEIGHT / 2+10;
+  int screen_center_x = EPD_WIDTH / 2+8;
+  int screen_center_y = EPD_HEIGHT / 2+8;
 
   int vertical_gap = 10; // Odległość pionowa między ćwiartkami
 
@@ -645,36 +645,113 @@ while (1) {
 
         // Odczyt poziomu baterii i jego wyświetlenie
         uint8_t bat_percentage = read_soc(&hi2c1);
+
+
+
         batteryLevel = bat_percentage;
 
-        char buffer_bat_percentage[100];
-        snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
-        Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
+
+
+
+
+// Parametry rysowania
+int battery_x = 358;
+int battery_y = 7;
+int battery_width = 32;
+int battery_height = 19;
+
+// Narysuj ikonę baterii
+DrawBattery(&paint, battery_x, battery_y, battery_width, battery_height, batteryLevel, COLORED);
+
+// Przygotuj tekst wartości baterii z "%" mniejszą czcionką
+char buffer_bat_percentage[20];
+snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
+
+// Oblicz pozycję do rysowania, aby wycentrować tekst w ikonie baterii
+int text_width = strlen(buffer_bat_percentage) * Font20.Width;
+int x_center = battery_x + (battery_width - text_width) / 2;
+int y_center = battery_y + (battery_height - Font20.Height) / 2+2;
+
+// Rysuj obrys tekstu procentowego
+Paint_DrawStringWithOutline(&paint, x_center, y_center, buffer_bat_percentage, &Font20, 1);
+
+// Oblicz pozycję dla "%", tuż po wartości procentowej
+x_center += text_width; // Przesuń o szerokość wartości liczbowej
+
+// Rysuj obrys "%" mniejszą czcionką
+//Paint_DrawStringWithOutline(&paint, x_center, y_center + 2, "%", &Font16, 1);
+
+
+
+
+
 
         // Rysowanie obiektów na ekranie
         Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // Ćwiartka: 1
         Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // Ćwiartka: 2
 
-        // Wyświetlanie danych TVOC
-        uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
-        char buffer_tvoc[20];
-        snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
-        Paint_DrawStringAt(&paint, 302, 80, "TVOC", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 308, 100, buffer_tvoc, &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 342, 102, "ppm", &Font16, COLORED);
 
-        Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // Ćwiartka: 3
 
-        // Wyświetlanie danych CO2
-        uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
-        char buffer_CO2[300];
-        snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
-        Paint_DrawStringAt(&paint, 18, 100, buffer_CO2, &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 14, 80, "CO2", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 65, 103, "ppm", &Font16, COLORED);
+
+
+   Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
+  Paint_DrawStringAt(&paint, 24, 80, "CO2", &Font20, COLORED);
+
+
+
+
+
+
+
+
+// Wyświetlanie danych TVOC z dołączonym "ppm" mniejszą czcionką
+uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
+char buffer_tvoc[20];
+snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
+
+int x_pos_tvoc = 308;
+int y_pos_tvoc = 100;
+
+// Rysowanie wartości TVOC większą czcionką
+Paint_DrawStringAt(&paint, x_pos_tvoc, y_pos_tvoc, buffer_tvoc, &Font20, COLORED);
+
+// Przesunięcie x_pos_tvoc o szerokość narysowanego tekstu wartości TVOC
+x_pos_tvoc += strlen(buffer_tvoc) * Font20.Width; 
+
+// Rysowanie "ppm" mniejszą czcionką, zaraz po wartości
+Paint_DrawStringAt(&paint, x_pos_tvoc + 2, y_pos_tvoc + 4, "ppm", &Font16, COLORED);
+
+Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // Ćwiartka: 3
+
+// Wyświetlanie danych CO2 z dołączonym "ppm" mniejszą czcionką
+uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
+char buffer_CO2[20];
+snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
+
+int x_pos_co2 = 24;
+int y_pos_co2 = 100;
+
+// Rysowanie wartości CO2 większą czcionką
+Paint_DrawStringAt(&paint, x_pos_co2, y_pos_co2, buffer_CO2, &Font20, COLORED);
+
+// Przesunięcie x_pos_co2 o szerokość narysowanego tekstu wartości CO2
+x_pos_co2 += strlen(buffer_CO2) * Font20.Width; 
+
+// Rysowanie "ppm" mniejszą czcionką, zaraz po wartości
+Paint_DrawStringAt(&paint, x_pos_co2 + 2, y_pos_co2 + 4, "ppm", &Font16, COLORED);
+
+
+
+
+
+
+
+
+
+
 
         Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // Ćwiartka: 4
+
 
         // Rysowanie centralnego pierścienia z AQI
         int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
@@ -694,25 +771,47 @@ while (1) {
 int co_ppm = process_co_measurement();
     float hcho_ppm = process_hcho_measurement();
 
-    // Wyświetlanie danych CO
-    char buffer_CO[20];
-    snprintf(buffer_CO, sizeof(buffer_CO), "%d", co_ppm);
+
+
+
+
+    Paint_DrawStringAt(&paint, 22, 180 , "CO", &Font20, COLORED);
+ Paint_DrawStringAt(&paint, 306, 180 , "HCHO", &Font20, COLORED);
  
-    Paint_DrawStringAt(&paint, 18, 180 , "CO", &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 27, 200 , buffer_CO, &Font20, COLORED);
-     Paint_DrawStringAt(&paint, 15, 200 , "<", &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 70, 203 , "ppm", &Font16, COLORED);
-
-    // Wyświetlanie danych HCHO
-    char buffer_HCHO[20];
-    snprintf(buffer_HCHO, sizeof(buffer_HCHO), "%.1f", hcho_ppm);
-    Paint_DrawStringAt(&paint, 306, 180 , "HCHO", &Font20, COLORED);
-    Paint_DrawStringAt(&paint, 297, 200 , buffer_HCHO, &Font20, COLORED);
- Paint_DrawStringAt(&paint, 278, 200 , "<", &Font20, COLORED);
-
-    Paint_DrawStringAt(&paint, 342, 203 , "ppm", &Font16, COLORED);
 
 
+
+// Deklaracja zmiennych dla bufora i pozycji dla HCHO
+char buffer_HCHO[10];
+int x_pos_hcho = 296;
+int y_pos_hcho = 200;
+
+// Rysowanie "<" i wartości hcho_ppm
+snprintf(buffer_HCHO, sizeof(buffer_HCHO), "<%.1f", hcho_ppm);
+Paint_DrawStringAt(&paint, x_pos_hcho, y_pos_hcho, buffer_HCHO, &Font20, COLORED);
+
+// Przesunięcie x_pos_hcho o szerokość narysowanego tekstu "<0.5"
+x_pos_hcho += strlen(buffer_HCHO) * Font20.Width;
+
+// Rysowanie "ppm" mniejszą czcionką, zaraz po wartości
+Paint_DrawStringAt(&paint, x_pos_hcho + 5, y_pos_hcho + 2, "ppm", &Font16, COLORED);
+
+
+
+// Deklaracja zmiennych dla bufora i pozycji
+char buffer_CO[10];
+int x_pos = 22;
+int y_pos = 200;
+
+// Rysowanie "<" i wartości co_ppm
+snprintf(buffer_CO, sizeof(buffer_CO), "<%d", co_ppm);
+Paint_DrawStringAt(&paint, x_pos, y_pos, buffer_CO, &Font20, COLORED);
+
+// Przesunięcie x_pos o szerokość narysowanego tekstu "<100"
+x_pos += strlen(buffer_CO) * Font20.Width; 
+
+// Rysowanie "ppm" mniejszą czcionką, zaraz po wartości
+Paint_DrawStringAt(&paint, x_pos + 5, y_pos + 2, "ppm", &Font16, COLORED);
 
 
 

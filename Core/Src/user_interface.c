@@ -815,15 +815,15 @@ void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int c
     snprintf(yearStr, sizeof(yearStr), "%04d", 2000 + date.Year);
 
     // Wyświetl datę po lewej stronie
-    Paint_DrawStringAt(paint, 10, 2, dateStr, &Font20, COLORED);
+    Paint_DrawStringAt(paint, 18, 2, dateStr, &Font20, COLORED);
 
     // Wyświetl czas na środku na górze
     Paint_DrawStringAtCenter(paint, 10, timeStr, &Font20, 400);
 
-    Paint_DrawStringAt(paint, 10, 20, yearStr, &Font20, COLORED);
+    Paint_DrawStringAt(paint, 18, 20, yearStr, &Font20, COLORED);
 
     // Narysuj ikonę baterii na górze po prawej stronie
-    DrawBattery(paint, 350, 7, 32, 19, batteryLevel, COLORED);
+    DrawBattery(paint, 358, 7, 32, 19, batteryLevel, COLORED);
 }
 
 const char *getMonthStr(uint8_t month)

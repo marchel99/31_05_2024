@@ -79,6 +79,10 @@ void Paint_DrawRing(Paint *paint, int x0, int y0, int radius, int thickness, int
 
 
 
+void Paint_DrawStringWithOutline(Paint *paint, int x, int y, const char *text, const sFONT *font, int outline_width);
+    // Rysuj tekst białym kolorem (tło) w czterech kierunkach, aby stworzyć obrys
+
+
 
 
 
