@@ -43,7 +43,6 @@
 typedef int (*CanExitMenuFunction)(void);
 CanExitMenuFunction canExitMenu = NULL;
 
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -73,16 +72,15 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-//volatile uint8_t buttonState_SW = 0; 
+// volatile uint8_t buttonState_SW = 0;
 RTC_TimeTypeDef time;
 RTC_DateTypeDef date;
 
-
-
-
-
 float read_adc_value(void);
 int get_co_ppm(float voltage);
+float get_hcho_ppm(float vs);
+
+
 
 
 // main.c lub inny plik, w którym znajduje się HAL_GPIO_EXTI_Callback
@@ -92,16 +90,12 @@ volatile uint8_t buzzer_active = 0;
 volatile uint32_t last_interrupt_time = 0;
 volatile uint8_t GoToMenu = 0;
 
-
-
 const uint32_t debounce_time = 200; // czas tłumienia drgań w ms
-
 
 static struct bme280_t bme280;
 static struct bme280_t *p_bme280 = &bme280;
 
 volatile int currentIconIndex = 1; // Globalna zmienna do śledzenia wybranej ikony
-
 
 DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi1_tx;
@@ -110,7 +104,7 @@ extern DFRobot_ENS160_I2C ens160;
 int counter = 1;
 float batteryLevel = 0;
 
-volatile uint8_t inMenu = 0; 
+volatile uint8_t inMenu = 0;
 
 Epd epd;
 Paint paint;
@@ -129,10 +123,23 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
+float process_hcho_measurement(void);
+int process_co_measurement(void);
+
+
+
 void user_delay_ms(uint32_t period);
 void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
 void read_and_print_ens160_data(void);
+
+
+
+float calculate_hcho_ppm(float voltage);
+
+int calculate_co_ppm(float voltage);
+
+
 
 int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len);
@@ -141,8 +148,7 @@ float read_soc(I2C_HandleTypeDef *hi2c);
 
 // void DisplayIcon(int iconIndex);
 
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin); 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 
 /* USER CODE END PFP */
 
@@ -164,15 +170,6 @@ int __io_putchar(int ch)
   HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
   return 1;
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -198,179 +195,311 @@ void read_adc_values(void)
     // Calculate CO ppm
     int co_ppm = get_co_ppm(voltage[0]);
 
+    // Calculate HCHO ppm
+    float hcho_ppm = get_hcho_ppm(voltage[1]);
+
+
+
+
+   
+
+
+
+
+
+
+
+
+    // Print the results
     printf("CO value=%lu (%.3f V), CO ppm=%d\n", value[0], voltage[0], co_ppm);
-    printf("HCHO value=%lu (%.3f V)\n", value[1], voltage[1]);
+    printf("HCHO value=%lu (%.3f V), HCHO ppm=%.1f\n", value[1], voltage[1], hcho_ppm);
 }
+
+
+
+
+
+
+int calculate_co_ppm(float voltage)
+{
+    const float R0 = 90.26f; // Wartość R0 w kΩ
+    const float RL = 4.7f;   // Wartość rezystora pull-down w kΩ
+
+    float Rs = RL * (3.3f / voltage - 1.0f);
+    float ratio = Rs / R0;
+
+    if (ratio > 0.8f)
+        return 5;
+    else if (ratio > 0.4f)
+        return 10;
+    else if (ratio > 0.3f)
+        return 20;
+    else if (ratio > 0.21f)
+        return 50;
+    else if (ratio > 0.17f)
+        return 100;
+    else if (ratio > 0.15f)
+        return 150;
+    else if (ratio > 0.12f)
+        return 500;
+    else if (ratio > 0.1f)
+        return 1000;
+    else
+        return 5000;
+}
+
+float calculate_hcho_ppm(float voltage)
+{
+    const float v0 = 0.5f; // Zakładane napięcie bazowe w czystym powietrzu dla HCHO
+
+    float ratio = voltage / v0;
+
+    if (ratio <= 1.2)
+        return 0.1;
+    else if (ratio > 1.2 && ratio <= 1.4)
+        return 0.2;
+    else if (ratio > 1.4 && ratio <= 1.6)
+        return 0.3;
+    else if (ratio > 1.6 && ratio <= 1.8)
+        return 0.4;
+    else if (ratio > 1.8 && ratio <= 2.0)
+        return 0.6;
+    else if (ratio > 2.0 && ratio <= 2.2)
+        return 0.9;
+    else
+        return 1.0;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 int get_co_ppm(float voltage)
 {
-    // Stałe wartości dla obliczeń
-    const float R0 = 90.26f; // Wartość R0 w kΩ
-    const float RL = 4.7f; // Wartość rezystora pull-down w kΩ
+  // Stałe wartości dla obliczeń
+  const float R0 = 90.26f; // Wartość R0 w kΩ
+  const float RL = 4.7f;   // Wartość rezystora pull-down w kΩ
 
-    // Oblicz rezystancję czujnika Rs
-    float Rs = RL * (3.3f / voltage - 1.0f);
+  // Oblicz rezystancję czujnika Rs
+  float Rs = RL * (3.3f / voltage - 1.0f);
 
-    // Oblicz stosunek Rs/R0
-    float ratio = Rs / R0;
+  // Oblicz stosunek Rs/R0
+  float ratio = Rs / R0;
 
-    // Zwróć odpowiednią wartość ppm na podstawie stosunku
-    if (ratio > 0.8f) return 5;
-    else if (ratio > 0.4f) return 10;
-    else if (ratio > 0.3f) return 20;
-    else if (ratio > 0.21f) return 50;
-    else if (ratio > 0.17f) return 100;
-    else if (ratio > 0.15f) return 150;
-    else if (ratio > 0.12f) return 500;
-    else if (ratio > 0.1f) return 1000;
-    else return 5000;
+  // Zwróć odpowiednią wartość ppm na podstawie stosunku
+  if (ratio > 0.8f)
+    return 5;
+  else if (ratio > 0.4f)
+    return 10;
+  else if (ratio > 0.3f)
+    return 20;
+  else if (ratio > 0.21f)
+    return 50;
+  else if (ratio > 0.17f)
+    return 100;
+  else if (ratio > 0.15f)
+    return 150;
+  else if (ratio > 0.12f)
+    return 500;
+  else if (ratio > 0.1f)
+    return 1000;
+  else
+    return 5000;
 }
+float get_hcho_ppm(float vs)
+{
+    // Assume V0 is a baseline sensor voltage in clean air for HCHO
+    const float v0 = 0.5f; // You can adjust this baseline voltage as per your sensor specifications
 
+    // Calculate the ratio Vs/V0
+    float ratio = vs / v0;
 
-
-
-
-
-
+    // Determine ppm based on the ratio
+    if (ratio <= 1.2)
+        return 0.1; // Less than 0.1 ppm
+    else if (ratio > 1.2 && ratio <= 1.4)
+        return 0.2; // Less than 0.2 ppm
+    else if (ratio > 1.4 && ratio <= 1.6)
+        return 0.3; // Less than 0.3 ppm
+    else if (ratio > 1.6 && ratio <= 1.8)
+        return 0.4; // Less than 0.4 ppm
+    else if (ratio > 1.8 && ratio <= 2.0)
+        return 0.6; // Less than 0.6 ppm
+    else if (ratio > 2.0 && ratio <= 2.2)
+        return 0.9; // Less than 0.9 ppm
+    else
+        return 1.0; // 1.0 ppm or more
+}
 
 
 
 // Delay function for BME280
 void user_delay_ms(uint32_t period)
 {
-    HAL_Delay(period);
+  HAL_Delay(period);
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Function to read and print BME280 sensor data
 void print_sensor_data_bme280(struct bme280_t *bme280)
 {
-    int32_t temp_raw, pressure_raw, humidity_raw;
+  int32_t temp_raw, pressure_raw, humidity_raw;
 
-    // Set the sensor to FORCED_MODE for a single measurement
-    bme280_set_power_mode(BME280_FORCED_MODE);
-    user_delay_ms(100); // Add delay after setting the mode
+  // Set the sensor to FORCED_MODE for a single measurement
+  bme280_set_power_mode(BME280_FORCED_MODE);
+  user_delay_ms(100); // Add delay after setting the mode
 
-    if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
-    {
-        int32_t v_comp_temp_s32;
-        uint32_t v_comp_press_u32;
-        uint32_t v_comp_humidity_u32;
+  if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
+  {
+    int32_t v_comp_temp_s32;
+    uint32_t v_comp_press_u32;
+    uint32_t v_comp_humidity_u32;
 
-        v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
-        v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
-        v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
+    v_comp_temp_s32 = bme280_compensate_temperature_int32(temp_raw);
+    v_comp_press_u32 = bme280_compensate_pressure_int32(pressure_raw);
+    v_comp_humidity_u32 = bme280_compensate_humidity_int32(humidity_raw);
 
-        float imp_temp = ((float)v_comp_temp_s32 / 100);
-        float imp_press = ((float)v_comp_press_u32 / 100);
-        float imp_humi = ((float)v_comp_humidity_u32 / 1024);
-        float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
+    float imp_temp = ((float)v_comp_temp_s32 / 100);
+    float imp_press = ((float)v_comp_press_u32 / 100);
+    float imp_humi = ((float)v_comp_humidity_u32 / 1024);
+    float dewpt = imp_temp - ((100 - imp_humi) / 5.0);
 
-        char raw_buffer[200];
-        const char separator[] = "________________________________________________________________________\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
-        int length = snprintf(raw_buffer, sizeof(raw_buffer), "ENS160_Status: %d, Raw Temp: %ld, Raw Pressure: %ld, Raw Humidity: %ld\r\n",
-                              DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
-        HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
+    char raw_buffer[200];
+    const char separator[] = "________________________________________________________________________\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+    int length = snprintf(raw_buffer, sizeof(raw_buffer), "ENS160_Status: %d, Raw Temp: %ld, Raw Pressure: %ld, Raw Humidity: %ld\r\n",
+                          DFRobot_ENS160_GetStatus(&ens160), temp_raw, pressure_raw, humidity_raw);
+    HAL_UART_Transmit(&huart2, (uint8_t *)raw_buffer, length, HAL_MAX_DELAY);
 
-        HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
+    HAL_UART_Transmit(&huart2, (uint8_t *)separator, strlen(separator), HAL_MAX_DELAY);
 
-        char display_buffer[200];
-        length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
-                          imp_temp, imp_press, imp_humi, dewpt);
-        HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
-    }
-    else
-    {
-        const char error_message[] = "Sensor read error!\r\n";
-        HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
-    }
+    char display_buffer[200];
+    length = snprintf(display_buffer, sizeof(display_buffer), "Temp: %.2f °C, Press: %.2f hPa, Hum: %.2f%% rH, Dew Point: %.2f °C\r\n",
+                      imp_temp, imp_press, imp_humi, dewpt);
+    HAL_UART_Transmit(&huart2, (uint8_t *)display_buffer, length, HAL_MAX_DELAY);
+  }
+  else
+  {
+    const char error_message[] = "Sensor read error!\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
+  }
 }
 
 
+void init_ens160(void)
+{
+  DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
 
-
-
-
-
-
-
-
-
-
-
-
-
- void init_ens160(void)
+  while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
   {
-    DFRobot_ENS160_I2C_Init(&ens160, &hi2c1, 0x53);
+    printf("ENS160 initialization failed!\r\n");
+    HAL_Delay(3000);
+  }
+  printf("ENS160 initialized successfully!\r\n");
 
-    while (DFRobot_ENS160_I2C_Begin(&ens160) != NO_ERR)
-    {
-      printf("ENS160 initialization failed!\r\n");
-      HAL_Delay(3000);
-    }
-    printf("ENS160 initialized successfully!\r\n");
+  DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
+  DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
+}
 
-    DFRobot_ENS160_SetPWRMode(&ens160, ENS160_STANDARD_MODE);
-    DFRobot_ENS160_SetTempAndHum(&ens160, 25.0, 50.0);
+// I2C read function for BME280
+int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
+{
+  HAL_StatusTypeDef status;
+
+  if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
+  {
+    printf("I2C device not ready!\r\n");
+    return -1;
   }
 
-  // I2C read function for BME280
-  int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t * reg_data, uint8_t len)
+  status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+  if (status != HAL_OK)
   {
-    HAL_StatusTypeDef status;
-
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
-    {
-      printf("I2C device not ready!\r\n");
-      return -1;
-    }
-
-    status = HAL_I2C_Mem_Read(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
-    if (status != HAL_OK)
-    {
-      printf("I2C read error: %d\r\n", status);
-      return -1;
-    }
-    return 0;
+    printf("I2C read error: %d\r\n", status);
+    return -1;
   }
-
-
-
+  return 0;
+}
 
 // I2C write function for BME280
 int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8_t len)
 {
-    HAL_StatusTypeDef status;
+  HAL_StatusTypeDef status;
 
-    if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
-    {
-        printf("I2C device not ready!\r\n");
-        return -1;
-    }
+  if (HAL_I2C_IsDeviceReady(&hi2c1, dev_id << 1, 10, 1000) != HAL_OK)
+  {
+    printf("I2C device not ready!\r\n");
+    return -1;
+  }
 
-    status = HAL_I2C_Mem_Write(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
-    if (status != HAL_OK)
-    {
-        printf("I2C write error: %d\r\n", status);
-        return -1;
-    }
-    return 0;
+  status = HAL_I2C_Mem_Write(&hi2c1, dev_id << 1, reg_addr, I2C_MEMADD_SIZE_8BIT, reg_data, len, 1000);
+  if (status != HAL_OK)
+  {
+    printf("I2C write error: %d\r\n", status);
+    return -1;
+  }
+  return 0;
 }
+
+
+
+
+
+int process_co_measurement(void)
+{
+    uint32_t adc_value;
+    float co_voltage;
+
+    // Start ADC conversion for CO
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    adc_value = HAL_ADC_GetValue(&hadc1);
+
+    // Convert ADC value to voltage
+    co_voltage = 3.3f * adc_value / 4095.0f;
+
+    // Calculate CO ppm
+    int co_ppm = calculate_co_ppm(co_voltage);
+
+    return co_ppm;
+}
+
+float process_hcho_measurement(void)
+{
+    uint32_t adc_value;
+    float hcho_voltage;
+
+    // Start ADC conversion for HCHO
+    HAL_ADC_Start(&hadc1);
+    HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+    adc_value = HAL_ADC_GetValue(&hadc1);
+
+    // Convert ADC value to voltage
+    hcho_voltage = 3.3f * adc_value / 4095.0f;
+
+    // Calculate HCHO ppm
+    float hcho_ppm = calculate_hcho_ppm(hcho_voltage);
+
+    return hcho_ppm;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -380,15 +509,14 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint8
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
   // Initialize the ENS160 sensor
- 
 
   /* USER CODE END 1 */
 
@@ -423,8 +551,6 @@ int main(void)
 
   /* E-paper display setup */
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-
-  
 
   if (Epd_Init(&epd) != 0)
   {
@@ -461,8 +587,8 @@ int main(void)
   int offset_y = 100; // Przesunięcie pionowe
 
   // Obliczanie środka ekranu
-  int screen_center_x = EPD_WIDTH / 2;
-  int screen_center_y = EPD_HEIGHT / 2;
+  int screen_center_x = EPD_WIDTH / 2+10;
+  int screen_center_y = EPD_HEIGHT / 2+10;
 
   int vertical_gap = 10; // Odległość pionowa między ćwiartkami
 
@@ -474,125 +600,87 @@ int main(void)
 
   init_ens160();
 
- p_bme280->bus_write = user_i2c_write;
-    p_bme280->bus_read = user_i2c_read;
-    p_bme280->delay_msec = user_delay_ms;
-    p_bme280->dev_addr = BME280_I2C_ADDR;
+  p_bme280->bus_write = user_i2c_write;
+  p_bme280->bus_read = user_i2c_read;
+  p_bme280->delay_msec = user_delay_ms;
+  p_bme280->dev_addr = BME280_I2C_ADDR;
 
-    if (bme280_init(p_bme280) != BME280_OK)
-    {
-        printf("BME280 initialization failed!\r\n");
-        Error_Handler();
-    }
-    else
-    {
-        printf("BME280 initialized successfully!\r\n");
-    }
+  if (bme280_init(p_bme280) != BME280_OK)
+  {
+    printf("BME280 initialization failed!\r\n");
+    Error_Handler();
+  }
+  else
+  {
+    printf("BME280 initialized successfully!\r\n");
+  }
 
-    // Configure BME280 sensor
-    bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
-    bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
-    bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
-    bme280_set_filter(BME280_FILTER_COEFF_16);
-    bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
+  // Configure BME280 sensor
+  bme280_set_oversamp_humidity(BME280_OVERSAMP_1X);
+  bme280_set_oversamp_pressure(BME280_OVERSAMP_16X);
+  bme280_set_oversamp_temperature(BME280_OVERSAMP_2X);
+  bme280_set_filter(BME280_FILTER_COEFF_16);
+  bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
+while (1) {
+    if (!inMenu) {
+        // Pobranie aktualnego czasu z RTC
+        HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+        printf("RTC: %02d:%02d:%02d\n", time.Hours, time.Minutes, time.Seconds);
 
+        // Odczyt danych z czujników
+        read_and_print_ens160_data();
+        print_sensor_data_bme280(p_bme280);
+        read_adc_values();
 
-
-
-
-
-
-
-
-while (1)
-{
-    if (!inMenu)
-    {
-
-
-
-
-     HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
-
- printf("RTC: %02d:%02d:%02d\n", time.Hours, time.Minutes, time.Seconds);
-      
-
-
-      
- read_and_print_ens160_data();
-
-print_sensor_data_bme280(p_bme280);
-
-
-
-
-read_adc_values();
-
-
-
-
-
-
-
-
-
-
-
+        // Aktualizacja ikony na podstawie wartości enkodera
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
         int iconIndex = getIconIndex(encoderValue);
         currentIconIndex = iconIndex; // Aktualizacja globalnej zmiennej
 
+        // Czyszczenie ekranu przed rysowaniem
         Paint_Clear(&paint, UNCOLORED);
 
+        // Wyświetlanie sekcji górnej z danymi RTC i wskaźnikiem baterii
         DisplayTopSection(&paint, iconIndex, encoderValue, counter++, batteryLevel);
 
+        // Odczyt poziomu baterii i jego wyświetlenie
         uint8_t bat_percentage = read_soc(&hi2c1);
+        batteryLevel = bat_percentage;
 
         char buffer_bat_percentage[100];
-  batteryLevel = bat_percentage;
-        Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
-
         snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
         Paint_DrawStringAt(&paint, 300, 10, buffer_bat_percentage, &Font20, COLORED);
-        // Paint_DrawStringAt(&paint, 340, 102, "ppm",&Font16, COLORED);
+        Paint_DrawStringAt(&paint, 327, 10, "%", &Font20, COLORED);
 
-        // Rysowanie linii poziomej
-        // Paint_DrawLineWithThickness(&paint, x0_left, y0_top - vertical_gap, x0_right + width, y0_top - vertical_gap, thickness, COLORED);
+        // Rysowanie obiektów na ekranie
+        Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // Ćwiartka: 1
+        Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // Ćwiartka: 2
 
-        // Rysowanie obiektów
-        Paint_Universal_Ring(&paint, x0_left, y0_top, width, height, thickness, COLORED, 1); // kolor: COLORED, Ćwiartka: 1
-
-        Paint_Universal_Ring(&paint, x0_right, y0_top, width, height, thickness, COLORED, 2); // kolor: COLORED, Ćwiartka: 2
-
+        // Wyświetlanie danych TVOC
         uint8_t tvoc = DFRobot_ENS160_GetTVOC(&ens160);
-
-        char buffer_tvoc[20]; // Adjust the buffer size as needed
-
-        Paint_DrawStringAt(&paint, 306, 80, "TVOC", &Font20, COLORED);
+        char buffer_tvoc[20];
         snprintf(buffer_tvoc, sizeof(buffer_tvoc), "%d", tvoc);
-        Paint_DrawStringAt(&paint, 310, 100, buffer_tvoc, &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 340, 102, "ppm", &Font16, COLORED);
+        Paint_DrawStringAt(&paint, 302, 80, "TVOC", &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 308, 100, buffer_tvoc, &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 342, 102, "ppm", &Font16, COLORED);
 
-        Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // kolor: COLORED, Ćwiartka: 3
+        Paint_Universal_Ring(&paint, x0_left, y0_bottom, width, height, thickness, COLORED, 3); // Ćwiartka: 3
 
+        // Wyświetlanie danych CO2
         uint8_t co2 = DFRobot_ENS160_GetECO2(&ens160);
         char buffer_CO2[300];
         snprintf(buffer_CO2, sizeof(buffer_CO2), "%d", co2);
-        Paint_DrawStringAt(&paint, 20, 100, buffer_CO2, &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 18, 80, "CO2", &Font20, COLORED);
-        Paint_DrawStringAt(&paint, 64, 103, "ppm", &Font16, COLORED);
+        Paint_DrawStringAt(&paint, 18, 100, buffer_CO2, &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 14, 80, "CO2", &Font20, COLORED);
+        Paint_DrawStringAt(&paint, 65, 103, "ppm", &Font16, COLORED);
 
-        Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // kolor: COLORED, Ćwiartka: 4
+        Paint_Universal_Ring(&paint, x0_right, y0_bottom, width, height, thickness, COLORED, 4); // Ćwiartka: 4
 
-        // Obliczanie środka geometrycznego czterech obiektów
+        // Rysowanie centralnego pierścienia z AQI
         int center_x = (x0_left + width / 2 + x0_right + width / 2) / 2;
         int center_y = (y0_top + height / 2 + y0_bottom + height / 2) / 2;
-
-        
         int outer_radius = screen_center_x - x0_left - height - vertical_gap - thickness;
-
-        // Rysowanie centralnego pierścienia
-        Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED); // Jasnoszary pierścień
+        Paint_DrawRing(&paint, center_x, center_y, outer_radius, thickness, COLORED);
 
         uint8_t aqi = DFRobot_ENS160_GetAQI(&ens160);
         char buffer_AQI[100];
@@ -603,48 +691,26 @@ read_adc_values();
 
 
 
+int co_ppm = process_co_measurement();
+    float hcho_ppm = process_hcho_measurement();
 
+    // Wyświetlanie danych CO
+    char buffer_CO[20];
+    snprintf(buffer_CO, sizeof(buffer_CO), "%d", co_ppm);
+ 
+    Paint_DrawStringAt(&paint, 18, 180 , "CO", &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 27, 200 , buffer_CO, &Font20, COLORED);
+     Paint_DrawStringAt(&paint, 15, 200 , "<", &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 70, 203 , "ppm", &Font16, COLORED);
 
+    // Wyświetlanie danych HCHO
+    char buffer_HCHO[20];
+    snprintf(buffer_HCHO, sizeof(buffer_HCHO), "%.1f", hcho_ppm);
+    Paint_DrawStringAt(&paint, 306, 180 , "HCHO", &Font20, COLORED);
+    Paint_DrawStringAt(&paint, 297, 200 , buffer_HCHO, &Font20, COLORED);
+ Paint_DrawStringAt(&paint, 278, 200 , "<", &Font20, COLORED);
 
-
-
-
-int32_t temp_raw = 0;
-int32_t pressure_raw = 0;
-int32_t humidity_raw = 0;
-
-// Odczyt surowych danych z czujnika BME280
-if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK)
-{
-    // Kompensacja temperatury
-    int32_t bme280_temp = bme280_compensate_temperature_int32(temp_raw);
-    float temperature_celsius = bme280_temp / 100.0;  // Zamiana na stopnie Celsjusza
-    
-    // Kompensacja wilgotności
-    uint32_t bme280_humidity = bme280_compensate_humidity_int32(humidity_raw);
-    float humidity_percentage = bme280_humidity / 1024.0;  // Zamiana na % wilgotności
-    
-    // Tworzenie buforów dla wyświetlania temperatury i wilgotności
-    char buffer_TEMP[50];
-    char buffer_HUM[50];
-    snprintf(buffer_TEMP, sizeof(buffer_TEMP), "%.2f", temperature_celsius);
-    snprintf(buffer_HUM, sizeof(buffer_HUM), "%.2f", humidity_percentage);
-    
-    // Pozycje dla T: i H:
-    int line_y = center_y + 40;  // Pozycja Y dla wyświetlania tekstu pod AQI
-
-    // Wyświetlanie temperatury i wilgotności na tej samej linii poziomej, pod AQI
-    Paint_DrawStringAt(&paint, center_x - 60, line_y - 20, "T:", &Font16, 400);
-    Paint_DrawStringAt(&paint, center_x - 60, line_y, buffer_TEMP, &Font16, 400);
-    
-    Paint_DrawStringAt(&paint, center_x + 20, line_y - 20, "H:", &Font16, 400);
-    Paint_DrawStringAt(&paint, center_x + 20, line_y, buffer_HUM, &Font16, 400);
-}
-else
-{
-    // Obsługa błędu, jeśli odczyt danych się nie powiódł
-    Paint_DrawStringAtCenter(&paint, center_y + 40, "Error", &Font16, 400);
-}
+    Paint_DrawStringAt(&paint, 342, 203 , "ppm", &Font16, COLORED);
 
 
 
@@ -660,65 +726,82 @@ else
 
 
 
+        // Odczyt i wyświetlanie temperatury oraz wilgotności z BME280
+        int32_t temp_raw = 0, pressure_raw = 0, humidity_raw = 0;
+        if (bme280_read_uncomp_pressure_temperature_humidity(&pressure_raw, &temp_raw, &humidity_raw) == BME280_OK) {
+            int32_t bme280_temp = bme280_compensate_temperature_int32(temp_raw);
+            float temperature_celsius = bme280_temp / 100.0;
 
+            uint32_t bme280_humidity = bme280_compensate_humidity_int32(humidity_raw);
+            float humidity_percentage = bme280_humidity / 1024.0;
 
+            char buffer_TEMP[50], buffer_HUM[50];
+            snprintf(buffer_TEMP, sizeof(buffer_TEMP), "%.1f", temperature_celsius);
+            snprintf(buffer_HUM, sizeof(buffer_HUM), "%.1f", humidity_percentage);
 
+            int line_y = center_y + 40;
+            Paint_DrawStringAt(&paint, center_x - 60, line_y - 20, "T:", &Font16, 400);
+            Paint_DrawStringAt(&paint, center_x - 60, line_y, buffer_TEMP, &Font16, 400);
+            Paint_DrawStringAt(&paint, center_x + 20, line_y - 20, "H:", &Font16, 400);
+            Paint_DrawStringAt(&paint, center_x + 20, line_y, buffer_HUM, &Font16, 400);
+        } else {
+            Paint_DrawStringAtCenter(&paint, center_y + 40, "Error", &Font16, 400);
+        }
 
-
+        // Wyświetlanie dolnej sekcji z ikonami
         DisplayBottomSection(&paint, iconIndex);
 
+        // Aktualizacja wyświetlacza
         Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
-        HAL_Delay(10); // Opóźnienie 1 ms
+        HAL_Delay(10);
 
-        // Zwiększenie licznika impulsów
+        // Pełne odświeżenie ekranu co 180 cykli
         loopCounter++;
-
-        // Sprawdzanie, czy licznik osiągnął 180
-        if (loopCounter >= 180)
-        {
-            Epd_Clear(&epd); // Pełny reset ekranu
+        if (loopCounter >= 180) {
+            Epd_Clear(&epd);
             Paint_Clear(&paint, UNCOLORED);
             Epd_DisplayFull(&epd, Paint_GetImage(&paint));
-
-            loopCounter = 0; // Zresetowanie licznika impulsów
+            loopCounter = 0;
         }
     }
 
- // Sprawdzenie czy mamy przejść do menu
-        if (GoToMenu > 0 && GoToMenu <= 8)
-        {
-            inMenu = 1;
-            switch (GoToMenu)
-            {
-                case 1:
-                    ShowMenu1();
-                    break;
-                case 2:
-                    ShowMenu2();
-                    break;
-                case 3:
-                    ShowMenu3();
-                    break;
-                case 4:
-                    ShowMenu4();
-                    break;
-                case 5:
-                    ShowMenu5();
-                    break;
-                case 6:
-                    ShowMenu6();
-                    break;
-                case 7:
-                    ShowMenu7();
-                    break;
-                case 8:
-                    ShowMenu8();
-                    break;
-            }
-            GoToMenu = 0; // Zresetowanie zmiennej po obsłużeniu
+    // Sprawdzenie, czy należy przejść do menu
+    if (GoToMenu > 0 && GoToMenu <= 8) {
+        inMenu = 1;  // Ustawienie flagi przed wejściem do menu
+        switch (GoToMenu) {
+            case 1:
+                ShowMenu1();
+                break;
+            case 2:
+                ShowMenu2();
+                break;
+            case 3:
+                ShowMenu3();
+                break;
+            case 4:
+                ShowMenu4();
+                break;
+            case 5:
+                ShowMenu5();
+                break;
+            case 6:
+                ShowMenu6();
+                break;
+            case 7:
+                ShowMenu7();
+                break;
+            case 8:
+                ShowMenu8();
+                break;
         }
+        GoToMenu = 0; // Zresetowanie zmiennej po obsłużeniu
+        inMenu = 0;  // Powrót do normalnej pracy po wyjściu z menu
     }
+}
+
+
+  /* USER CODE END WHILE */
 
 
 
@@ -727,39 +810,44 @@ else
 
 
 
-    /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-  
+
+
+
+
+
+
+
+  /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure LSE Drive Capability
-  */
+   */
   HAL_PWR_EnableBkUpAccess();
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
+   * in the RCC_OscInitTypeDef structure.
+   */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE | RCC_OSCILLATORTYPE_MSI;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = 0;
@@ -777,9 +865,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -791,15 +878,15 @@ void SystemClock_Config(void)
   }
 
   /** Enable MSI Auto calibration
-  */
+   */
   HAL_RCCEx_EnableMSIPLLMode();
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_ADC1_Init(void)
 {
 
@@ -815,7 +902,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
@@ -837,7 +924,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure the ADC multi-mode
-  */
+   */
   multimode.Mode = ADC_MODE_INDEPENDENT;
   if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
   {
@@ -845,7 +932,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
@@ -858,7 +945,7 @@ static void MX_ADC1_Init(void)
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_2;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -868,14 +955,13 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_I2C1_Init(void)
 {
 
@@ -901,14 +987,14 @@ static void MX_I2C1_Init(void)
   }
 
   /** Configure Analogue filter
-  */
+   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Configure Digital filter
-  */
+   */
   if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
   {
     Error_Handler();
@@ -916,14 +1002,13 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
-
 }
 
 /**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief RTC Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_RTC_Init(void)
 {
 
@@ -939,7 +1024,7 @@ static void MX_RTC_Init(void)
   /* USER CODE END RTC_Init 1 */
 
   /** Initialize RTC Only
-  */
+   */
   hrtc.Instance = RTC;
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
   hrtc.Init.AsynchPrediv = 127;
@@ -958,7 +1043,7 @@ static void MX_RTC_Init(void)
   /* USER CODE END Check_RTC_BKUP */
 
   /** Initialize RTC and set the Time and Date
-  */
+   */
   sTime.Hours = 0x0;
   sTime.Minutes = 0x0;
   sTime.Seconds = 0x0;
@@ -980,14 +1065,13 @@ static void MX_RTC_Init(void)
   /* USER CODE BEGIN RTC_Init 2 */
 
   /* USER CODE END RTC_Init 2 */
-
 }
 
 /**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief SPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_SPI1_Init(void)
 {
 
@@ -1020,14 +1104,13 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM2_Init(void)
 {
 
@@ -1069,14 +1152,13 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
 }
 
 /**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM3 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM3_Init(void)
 {
 
@@ -1114,14 +1196,13 @@ static void MX_TIM3_Init(void)
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-
 }
 
 /**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USART2_UART_Init(void)
 {
 
@@ -1149,12 +1230,11 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
-
 }
 
 /**
-  * Enable DMA controller clock
-  */
+ * Enable DMA controller clock
+ */
 static void MX_DMA_Init(void)
 {
 
@@ -1168,19 +1248,18 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -1188,13 +1267,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, DC_Pin|RST_Pin|CS_Pin|CS_2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, DC_Pin | RST_Pin | CS_Pin | CS_2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : DC_Pin RST_Pin CS_Pin CS_2_Pin */
-  GPIO_InitStruct.Pin = DC_Pin|RST_Pin|CS_Pin|CS_2_Pin;
+  GPIO_InitStruct.Pin = DC_Pin | RST_Pin | CS_Pin | CS_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1223,51 +1302,53 @@ static void MX_GPIO_Init(void)
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    if (GPIO_Pin == EN_SW_Pin)
+  if (GPIO_Pin == EN_SW_Pin)
+  {
+    uint32_t current_time = HAL_GetTick();
+    if ((current_time - last_interrupt_time) > debounce_time)
     {
-        uint32_t current_time = HAL_GetTick();
-        if ((current_time - last_interrupt_time) > debounce_time)
+      last_interrupt_time = current_time;
+
+      if (inMenu)
+      {
+        // Jeśli encoderPosition jest w zakresie 1-5, to ustawiamy wartości, a nie wychodzimy z menu
+        if (encoderPosition > 0 && encoderPosition <= 5)
         {
-            last_interrupt_time = current_time;
-
-            if (inMenu)
-            {
-                // Jeśli encoderPosition jest w zakresie 1-5, to ustawiamy wartości, a nie wychodzimy z menu
-                if (encoderPosition > 0 && encoderPosition <= 5)
-                {
-                    EditMenu3Setting();
-                }
-                else if (canExitMenu == NULL || canExitMenu())
-                {
-                    inMenu = 0;  // Wyjście z menu tylko, gdy encoderPosition == 0
-                }
-            }
-            else
-            {
-                // Wejdź do menu
-                printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
-
-                // Ustawienie GoToMenu na podstawie currentIconIndex
-                GoToMenu = currentIconIndex;
-
-                inMenu = 1; // Ustawienie flagi inMenu na true
-            }
-
-            // Włączenie BUZZ
-            HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET);
-
-            // Uruchomienie timera, aby wyłączyć BUZZ po 100 ms
-            __HAL_TIM_SET_COUNTER(&htim3, 0);
-            HAL_TIM_Base_Start_IT(&htim3);
+          EditMenu3Setting();
         }
+        else if (canExitMenu == NULL || canExitMenu())
+        {
+          inMenu = 0; // Wyjście z menu tylko, gdy encoderPosition == 0
+            __HAL_TIM_SET_COUNTER(&htim2, 2); 
+            
+        }
+      }
+      else
+      {
+        // Wejdź do menu
+        printf("Przycisk enkodera wciśnięty! Aktualna ikona: %d\n", currentIconIndex);
+
+        // Ustawienie GoToMenu na podstawie currentIconIndex
+        GoToMenu = currentIconIndex;
+
+        inMenu = 1; // Ustawienie flagi inMenu na true
+      }
+
+      // Włączenie BUZZ
+      HAL_GPIO_WritePin(BUZZ_GPIO_Port, BUZZ_Pin, GPIO_PIN_SET);
+
+      // Uruchomienie timera, aby wyłączyć BUZZ po 100 ms
+      __HAL_TIM_SET_COUNTER(&htim3, 0);
+      HAL_TIM_Base_Start_IT(&htim3);
     }
+  }
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -1279,14 +1360,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
 }
 
-
-
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -1295,14 +1374,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */

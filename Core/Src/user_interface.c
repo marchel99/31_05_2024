@@ -849,7 +849,7 @@ const char *getMonthStr(uint8_t month)
     case 9:
         return "wrz";
     case 10:
-        return "paź";
+        return "paz";
     case 11:
         return "lis";
     case 12:
