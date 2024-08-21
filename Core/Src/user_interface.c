@@ -234,8 +234,6 @@ void EditMenu3Setting()
    
 }
 
-
-
 void EditHourSetting(void)
 {
     printf("Edycja godzin\n");
@@ -244,7 +242,6 @@ void EditHourSetting(void)
     RTC_TimeTypeDef currentTime;
     RTC_DateTypeDef currentDate;
     HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnej godziny i minut
-   
     HAL_RTC_GetDate(&hrtc, &currentDate, RTC_FORMAT_BIN); // Pobranie aktualnej daty
     int currentHour = currentTime.Hours;  // Inicjalizacja godziny
 
@@ -254,14 +251,26 @@ void EditHourSetting(void)
     Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
     Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
+    static int scaledChange = 0;     // Zmiana skalowana (nagromadzona zmiana)
+
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        int delta = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Aktualizuj currentHour w zależności od zmiany wartości enkodera
-        if (encoderChange != 0) {
-            currentHour += encoderChange;
+        // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+        if (abs(delta) > 12)
+        {   
+            lastEncoderValue = (int)(encoderValue); // Mimo to aktualizujemy lastEncoderValue
+            continue; // Ignorujemy nagłe skoki (teleportacje)
+        }
+
+        scaledChange += delta;
+
+        if (scaledChange >= 1 || scaledChange <= -1) {
+            // Aktualizuj currentHour w zależności od zmiany wartości enkodera
+            currentHour += scaledChange;
 
             // Zawijanie wartości godziny w zakresie 0-23
             if (currentHour < 0) {
@@ -296,6 +305,8 @@ void EditHourSetting(void)
             Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            scaledChange = 0; // Zresetowanie skali po aktualizacji
         }
 
         HAL_Delay(100); // Zwiększenie opóźnienia dla wyraźnego migania
@@ -307,23 +318,13 @@ void EditHourSetting(void)
             isEditing = 0;  // Zakończ edycję
 
             // Zapisz nową godzinę w systemie
-
-
-       RTC_TimeTypeDef new_time = currentTime;
-
-
+            RTC_TimeTypeDef new_time = currentTime;
             new_time.Hours = currentHour;
             HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nową godzinę
             printf("Nowa godzina ustawiona na: %02d\n", currentHour);
         }
     }
 }
-
-
-
-
-
-
 
 
 
@@ -345,14 +346,26 @@ void EditMinuteSetting(void)
     Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
     Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
+    static int scaledChange = 0;     // Zmiana skalowana (nagromadzona zmiana)
+
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        int delta = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Aktualizuj currentMinute w zależności od zmiany wartości enkodera
-        if (encoderChange != 0) {
-            currentMinute += encoderChange;
+        // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+        if (abs(delta) > 15)
+        {   
+            lastEncoderValue = (int)(encoderValue); // Mimo to aktualizujemy lastEncoderValue
+            continue; // Ignorujemy nagłe skoki (teleportacje)
+        }
+
+        scaledChange += delta;
+
+        if (scaledChange >= 1 || scaledChange <= -1) {
+            // Aktualizuj currentMinute w zależności od zmiany wartości enkodera
+            currentMinute += scaledChange;
 
             // Zawijanie wartości minut w zakresie 0-59
             if (currentMinute < 0) {
@@ -387,6 +400,8 @@ void EditMinuteSetting(void)
             Paint_DrawStringAtCenter(&paint, 150, "USTAW DATE", &Font20, 400);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            scaledChange = 0; // Zresetowanie skali po aktualizacji
         }
 
         HAL_Delay(100); // Zwiększenie opóźnienia dla wyraźnego migania
@@ -398,10 +413,8 @@ void EditMinuteSetting(void)
             isEditing = 0;  // Zakończ edycję
 
             // Zapisz nowe minuty w systemie, zerując sekundy
-           RTC_TimeTypeDef new_time = currentTime;
-new_time.Minutes = currentMinute;
-
-          
+            RTC_TimeTypeDef new_time = currentTime;
+            new_time.Minutes = currentMinute;
             new_time.Seconds = 0; // Zerowanie sekund
             HAL_RTC_SetTime(&hrtc, &new_time, RTC_FORMAT_BIN); // Zapisz nowe minuty
             printf("Nowa minuta ustawiona na: %02d\n", currentMinute);
@@ -416,24 +429,9 @@ new_time.Minutes = currentMinute;
 
 
 
-
-
-
-
-
-
-
-
-
 void EditDaySetting(void)
 {
     printf("Edycja dnia\n");
-
-
-
-
-
-
 
     uint32_t previousEncoderValue = __HAL_TIM_GET_COUNTER(&htim2); // Inicjalizacja zmiennej
     RTC_DateTypeDef currentDate;
@@ -453,26 +451,31 @@ void EditDaySetting(void)
         maxDay = 30;
     }
 
+    char buffer_day[10];
+    snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
+    Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
-
-
-
-  char buffer_day[10];
-            snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDate.Date);
-            Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
-
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
-
-
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
+    static int scaledChange = 0;     // Zmiana skalowana (nagromadzona zmiana)
 
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        int delta = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Aktualizuj currentDay w zależności od zmiany wartości enkodera
-        if (encoderChange != 0) {
-            currentDay += encoderChange;
+        // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+        if (abs(delta) > 12)
+        {   
+            lastEncoderValue = (int)(encoderValue); // Mimo to aktualizujemy lastEncoderValue
+            continue; // Ignorujemy nagłe skoki (teleportacje)
+        }
+
+        scaledChange += delta;
+
+        if (scaledChange >= 1 || scaledChange <= -1) {
+            // Aktualizuj currentDay w zależności od zmiany wartości enkodera
+            currentDay += scaledChange;
 
             // Zawijanie wartości dnia w zakresie 1-maxDay
             if (currentDay < 1) {
@@ -487,7 +490,6 @@ void EditDaySetting(void)
             // Aktualizuj wyświetlacz
             Paint_Clear(&paint, UNCOLORED);
 
-            char buffer_day[10];
             snprintf(buffer_day, sizeof(buffer_day), "%02d", currentDay);
 
             // Wyświetlanie zaktualizowanego dnia
@@ -509,11 +511,11 @@ void EditDaySetting(void)
             Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
 
             Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
-
-Paint_DrawStringAtCenter(&paint, 150, "USTAW DZIEN", &Font20, 400);
-
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW DZIEN", &Font20, 400);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            scaledChange = 0; // Zresetowanie skali po aktualizacji
         }
 
         HAL_Delay(100); // Opóźnienie
@@ -535,7 +537,6 @@ Paint_DrawStringAtCenter(&paint, 150, "USTAW DZIEN", &Font20, 400);
 }
 
 
-
 void EditMonthSetting(void)
 {
     printf("Edycja miesiąca\n");
@@ -548,29 +549,32 @@ void EditMonthSetting(void)
     HAL_RTC_GetTime(&hrtc, &currentTime, RTC_FORMAT_BIN); // Pobranie aktualnego czasu
     int currentMonth = currentDate.Month;  // Inicjalizacja miesiąca
 
+    char buffer_month[10];
+    snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
+    Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
 
+    Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
-            char buffer_month[10];
-            snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentDate.Month));
-            Paint_DrawStringAt(&paint, 150, 200, buffer_month, &Font20, COLORED);
-
-        
-            Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
-
-
-
-
-
-
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
+    static int scaledChange = 0;     // Zmiana skalowana (nagromadzona zmiana)
 
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        int delta = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Aktualizuj currentMonth w zależności od zmiany wartości enkodera
-        if (encoderChange != 0) {
-            currentMonth += encoderChange;
+        // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+        if (abs(delta) > 12)
+        {   
+            lastEncoderValue = (int)(encoderValue); // Mimo to aktualizujemy lastEncoderValue
+            continue; // Ignorujemy nagłe skoki (teleportacje)
+        }
+
+        scaledChange += delta;
+
+        if (scaledChange >= 1 || scaledChange <= -1) {
+            // Aktualizuj currentMonth w zależności od zmiany wartości enkodera
+            currentMonth += scaledChange;
 
             // Zawijanie wartości miesiąca w zakresie 1-12
             if (currentMonth < 1) {
@@ -585,7 +589,6 @@ void EditMonthSetting(void)
             // Aktualizuj wyświetlacz
             Paint_Clear(&paint, UNCOLORED);
 
-            char buffer_month[10];
             snprintf(buffer_month, sizeof(buffer_month), "%s", getMonthStr(currentMonth));
 
             // Wyświetlanie zaktualizowanego miesiąca
@@ -601,17 +604,17 @@ void EditMonthSetting(void)
             char buffer_year[10];
             snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
 
+            Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
+            Paint_DrawStringAtCenter(&paint, 150, "USTAW MIESIAC", &Font20, 400);
 
-
-   Paint_DrawStringAtCenter(&paint, 50, "USTAW GODZINE", &Font20, 400);
-   Paint_DrawStringAtCenter(&paint, 150, "USTAW MIESIAC", &Font20, 400);
-          
             Paint_DrawStringAt(&paint, 170, 100, buffer_hour, &Font20, COLORED);
             Paint_DrawStringAt(&paint, 215, 100, buffer_minute, &Font20, COLORED);
             Paint_DrawStringAt(&paint, 120, 200, buffer_day, &Font20, COLORED);
             Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            scaledChange = 0; // Zresetowanie skali po aktualizacji
         }
 
         HAL_Delay(100); // Opóźnienie
@@ -632,6 +635,11 @@ void EditMonthSetting(void)
     }
 }
 
+
+
+
+
+
 void EditYearSetting(void)
 {
     printf("Edycja roku\n");
@@ -645,23 +653,31 @@ void EditYearSetting(void)
     int currentYear = 2000 + currentDate.Year;  // Inicjalizacja roku
 
     char buffer_year[10];
-    snprintf(buffer_year, sizeof(buffer_year), "%d", 2000 + currentDate.Year);
+    snprintf(buffer_year, sizeof(buffer_year), "%d", currentYear);
     Paint_DrawStringAt(&paint, 200, 200, buffer_year, &Font20, COLORED);
 
     Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
 
+    static int lastEncoderValue = 0; // Przechowuje poprzednią wartość enkodera
+    static int scaledChange = 0;     // Zmiana skalowana (nagromadzona zmiana)
+
     while (isEditing) {
         uint32_t encoderValue = __HAL_TIM_GET_COUNTER(&htim2);
-        int encoderChange = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
+        int delta = (int)(encoderValue - previousEncoderValue); // Zmiana wartości enkodera
         previousEncoderValue = encoderValue;
 
-        // Dynamiczne skalowanie zmiany
-        if (encoderChange > 25) encoderChange = encoderChange * 2;
-        else if (encoderChange < -25) encoderChange = encoderChange * 2;
+        // Aktualizacja wartości enkodera tylko jeśli zmiana jest w rozsądnym zakresie
+        if (abs(delta) > 12)
+        {   
+            lastEncoderValue = (int)(encoderValue); // Mimo to aktualizujemy lastEncoderValue
+            continue; // Ignorujemy nagłe skoki (teleportacje)
+        }
 
-        // Aktualizuj currentYear w zależności od zmiany wartości enkodera
-        if (encoderChange != 0) {
-            currentYear += encoderChange;
+        scaledChange += delta;
+
+        if (scaledChange >= 1 || scaledChange <= -1) {
+            // Aktualizuj currentYear w zależności od zmiany wartości enkodera
+            currentYear += scaledChange;
 
             // Zawijanie wartości roku w zakresie 2000-2099
             if (currentYear < 2000) {
@@ -676,7 +692,6 @@ void EditYearSetting(void)
             // Aktualizuj wyświetlacz
             Paint_Clear(&paint, UNCOLORED);
 
-            char buffer_year[10];
             snprintf(buffer_year, sizeof(buffer_year), "%d", currentYear);
 
             // Wyświetlanie zaktualizowanego roku
@@ -701,6 +716,8 @@ void EditYearSetting(void)
             Paint_DrawStringAtCenter(&paint, 150, "USTAW ROK", &Font20, 400);
 
             Epd_Display_Partial_DMA(&epd, Paint_GetImage(&paint), 0, 0, 400, 300);
+
+            scaledChange = 0; // Zresetowanie skali po aktualizacji
         }
 
         HAL_Delay(100); // Opóźnienie
@@ -720,6 +737,9 @@ void EditYearSetting(void)
         }
     }
 }
+
+
+
 
 
 
