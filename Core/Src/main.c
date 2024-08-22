@@ -655,25 +655,26 @@ while (1) {
 
 
 // Parametry rysowania
-int battery_x = 358;
-int battery_y = 7;
-int battery_width = 32;
-int battery_height = 19;
+int battery_x = 350;
+int battery_y = 3;
+int battery_width = 41;
+int battery_height = 23;
 
 // Narysuj ikonę baterii
 DrawBattery(&paint, battery_x, battery_y, battery_width, battery_height, batteryLevel, COLORED);
 
-// Przygotuj tekst wartości baterii z "%" mniejszą czcionką
+
+
 char buffer_bat_percentage[20];
 snprintf(buffer_bat_percentage, sizeof(buffer_bat_percentage), "%d", bat_percentage);
 
 // Oblicz pozycję do rysowania, aby wycentrować tekst w ikonie baterii
 int text_width = strlen(buffer_bat_percentage) * Font20.Width;
 int x_center = battery_x + (battery_width - text_width) / 2;
-int y_center = battery_y + (battery_height - Font20.Height) / 2+2;
+int y_center = battery_y + (battery_height - Font20.Height) / 2+4;
 
 // Rysuj obrys tekstu procentowego
-Paint_DrawStringWithOutline(&paint, x_center, y_center, buffer_bat_percentage, &Font20, 1);
+Paint_DrawStringWithOutline(&paint, x_center, y_center, buffer_bat_percentage, &Font20, 2);
 
 // Oblicz pozycję dla "%", tuż po wartości procentowej
 x_center += text_width; // Przesuń o szerokość wartości liczbowej

@@ -823,7 +823,7 @@ void DisplayTopSection(Paint *paint, int iconIndex, uint32_t encoderValue, int c
     Paint_DrawStringAt(paint, 18, 20, yearStr, &Font20, COLORED);
 
     // Narysuj ikonę baterii na górze po prawej stronie
-    DrawBattery(paint, 358, 7, 32, 19, batteryLevel, COLORED);
+    //DrawBattery(paint, 356, 7, 32, 19, batteryLevel, COLORED);
 }
 
 const char *getMonthStr(uint8_t month)
@@ -874,7 +874,7 @@ void DisplayMiddleSection(Paint *paint)
 void DisplayBottomSection(Paint *paint, int iconIndex)
 {
     int icon_height = 245;
-    int desc_offset = 11;
+    int desc_offset = 5;
     const char *iconDescriptions[] = {
         "Wykresy",     // Opis dla ikony 1
         "Wilgotnosc",  // Opis dla ikony 2

@@ -612,15 +612,18 @@ void Paint_Universal_Ring(Paint *paint, int x0, int y0, int width, int height, i
     }
 }
 
-
-// Funkcja do rysowania tekstu z obrysem
 void Paint_DrawStringWithOutline(Paint *paint, int x, int y, const char *text, const sFONT *font, int outline_width) {
-    // Rysuj tekst białym kolorem (tło) w czterech kierunkach, aby stworzyć obrys
-    Paint_DrawStringAt(paint, x - outline_width, y, text, font, UNCOLORED); // W lewo
-    Paint_DrawStringAt(paint, x + outline_width, y, text, font, UNCOLORED); // W prawo
-    Paint_DrawStringAt(paint, x, y - outline_width, text, font, UNCOLORED); // W górę
-    Paint_DrawStringAt(paint, x, y + outline_width, text, font, UNCOLORED); // W dół
+    // Rysuj tekst białym kolorem (tło) w ośmiu kierunkach, aby stworzyć bardziej jednolity obrys
+    Paint_DrawStringAt(paint, x - outline_width, y, text, font, COLORED); // W lewo
+    Paint_DrawStringAt(paint, x + outline_width, y, text, font, COLORED); // W prawo
+    Paint_DrawStringAt(paint, x, y - outline_width, text, font, COLORED); // W górę
+    Paint_DrawStringAt(paint, x, y + outline_width, text, font, COLORED); // W dół
+
+    Paint_DrawStringAt(paint, x - outline_width, y - outline_width, text, font, COLORED); // W lewo-góra
+    Paint_DrawStringAt(paint, x + outline_width, y - outline_width, text, font, COLORED); // W prawo-góra
+    Paint_DrawStringAt(paint, x - outline_width, y + outline_width, text, font, COLORED); // W lewo-dół
+    Paint_DrawStringAt(paint, x + outline_width, y + outline_width, text, font, COLORED); // W prawo-dół
 
     // Rysuj tekst w środku czarnym kolorem (tekst właściwy)
-    Paint_DrawStringAt(paint, x, y, text, font, COLORED);
+    Paint_DrawStringAt(paint, x, y, text, font, UNCOLORED);
 }
