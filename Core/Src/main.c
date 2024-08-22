@@ -72,6 +72,8 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+static uint32_t measurement_number = 1;
+
 // volatile uint8_t buttonState_SW = 0;
 RTC_TimeTypeDef time;
 RTC_DateTypeDef date;
@@ -80,6 +82,7 @@ float read_adc_value(void);
 int get_co_ppm(float voltage);
 float get_hcho_ppm(float vs);
 
+volatile uint8_t isSDCardInserted = 0;
 
 
 
@@ -128,6 +131,14 @@ int process_co_measurement(void);
 
 
 
+
+void process_SD_card(const char *data);
+
+
+
+
+
+
 void user_delay_ms(uint32_t period);
 void print_sensor_data_bme280(struct bme280_t *bme280);
 void init_ens160(void);
@@ -173,6 +184,72 @@ int __io_putchar(int ch)
 
 
 
+void process_SD_card(const char *data)
+{
+    FATFS FatFs;  // Fatfs handle
+    FIL fil;      // File handle
+    FRESULT fres; // Result after operations
+
+    // Mount the SD card
+    fres = f_mount(&FatFs, "", 1); // 1=mount now
+    if (fres != FR_OK)
+    {
+        printf("Failed to mount SD card: (%i)\r\n", fres);
+        return;
+    }
+    printf("SD card mounted successfully!!!\r\n");
+
+    // Open the file for writing
+    printf("Opening file 'sensor_data.csv' for writing\n");
+    fres = f_open(&fil, "sensor_data.csv", FA_WRITE | FA_OPEN_APPEND);
+    if (fres != FR_OK)
+    {
+        printf("Error opening file (FA_WRITE | FA_OPEN_APPEND): (%i)\r\n", fres);
+        f_mount(NULL, "", 0);
+        return;
+    }
+
+    printf("Writing data to the file...\r\n");
+    // Write data
+    UINT bytes_written;
+    fres = f_write(&fil, data, strlen(data), &bytes_written);
+    if (fres != FR_OK || bytes_written != strlen(data))
+    {
+        printf("File write error, written %u bytes\n", bytes_written);
+        f_close(&fil);
+        f_mount(NULL, "", 0);
+        return;
+    }
+    printf("Data saved: %s\n", data);
+
+    // Close the file after writing
+    fres = f_close(&fil);
+    if (fres != HAL_OK)
+    {
+        printf("File close error after writing: (%i)\r\n", fres);
+        f_mount(NULL, "", 0);
+        return;
+    }
+
+    // Unmount the card
+    f_mount(NULL, "", 0);
+    printf("SD card unmounted successfully!!!\r\n");
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void read_adc_values(void)
 {
     uint32_t value[2];
@@ -214,6 +291,18 @@ void read_adc_values(void)
     printf("CO value=%lu (%.3f V), CO ppm=%d\n", value[0], voltage[0], co_ppm);
     printf("HCHO value=%lu (%.3f V), HCHO ppm=%.1f\n", value[1], voltage[1], hcho_ppm);
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -391,6 +480,17 @@ void print_sensor_data_bme280(struct bme280_t *bme280)
     const char error_message[] = "Sensor read error!\r\n";
     HAL_UART_Transmit(&huart2, (uint8_t *)error_message, strlen(error_message), HAL_MAX_DELAY);
   }
+
+
+
+
+
+
+
+
+
+
+  
 }
 
 
@@ -549,6 +649,14 @@ int main(void)
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
+
+
+
+
+
+
+
+
   /* E-paper display setup */
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
 
@@ -622,6 +730,22 @@ int main(void)
   bme280_set_filter(BME280_FILTER_COEFF_16);
   bme280_set_standby_durn(BME280_STANDBY_TIME_63_MS);
 while (1) {
+
+
+
+    // Prepare CSV data
+    char data_buffer[256];
+    snprintf(data_buffer, sizeof(data_buffer), "%lu\r\n", measurement_number++);
+
+    // Save data to SD card
+    process_SD_card(data_buffer);
+
+
+
+
+
+
+  
     if (!inMenu) {
         // Pobranie aktualnego czasu z RTC
         HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
